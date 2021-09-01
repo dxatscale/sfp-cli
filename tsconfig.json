@@ -5,10 +5,11 @@
     "module": "commonjs",
     "outDir": "lib",
     "rootDir": "src",
-    "strict": true,
+    "strict": false,
     "strictNullChecks": false,
     "strictPropertyInitialization": false,
-    "target": "es2017"
+    "noImplicitAny": false,
+    "target": "es2017",
   },
   "include": [
     "src/**/*"

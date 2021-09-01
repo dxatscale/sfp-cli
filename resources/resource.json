@@ -1,6 +1,6 @@
 {
     "types": {
-        "profile": {
+        "Profile": {
             "recommended": "src-access-management"
         }
     }

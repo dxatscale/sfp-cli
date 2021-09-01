@@ -1,11 +1,16 @@
 import {Command, flags} from '@oclif/command'
 import {RegistryAccess, MetadataType, MetadataRegistry, registry as defaultRegistry, ComponentSet, MetadataConverter} from '@salesforce/source-deploy-retrieve';
 import path = require('path');
-import FileSystem from "../utils/FileSystem";
+import FileSystem from "../../utils/FileSystem";
 const glob = require("glob");
 import * as fs from "fs-extra";
+import child_process = require("child_process");
+import inquirer = require('inquirer');
+inquirer.registerPrompt('autocomplete', require('inquirer-autocomplete-prompt'));
+import ProjectConfig from "@dxatscale/sfpowerscripts.core/lib/project/ProjectConfig";
+const fuzzy = require("fuzzy");
 
-export default class Hello extends Command {
+export default class Pull extends Command {
   static description = 'describe the command here'
 
   static examples = [
@@ -20,6 +25,7 @@ hello world from ./src/hello.ts!
     name: flags.string({char: 'n', description: 'name to print'}),
     // flag with no value (-f, --force)
     force: flags.boolean({char: 'f'}),
+    targetusername: flags.string({char: 'u'})
   }
 
   static args = [{name: 'file'}]
@@ -27,27 +33,92 @@ hello world from ./src/hello.ts!
   // must be run within project directory
 
   async run() {
-    const {args, flags} = this.parse(Hello)
+    const {args, flags} = this.parse(Pull);
+    const remoteAdditions = ["something"];
+    // const remoteAdditions = this.getRemoteAdditions(flags.targetusername);
+    // TODO: Check for conflicts
+    if (remoteAdditions.length === 0) {
+      console.log("No changes found");
+      return;
+    }
 
+    console.log(`Found ${remoteAdditions.length} new metadata components`);
+
+    let getMoveAction = await inquirer.prompt({type: "list", name: "moveAction", message: "Select a package for X?", choices: this.getChoicesForMovingMetadata()});
+    console.log(getMoveAction);
+
+    if()
+    let getExistingPackage = await inquirer.prompt([{
+      type: "autocomplete",
+      name: "package",
+      message: "Search for package",
+      source: this.searchExistingPackages
+    }]);
+
+    console.log(getExistingPackage);
+    // let getSomething = await inquirer.prompt([{type: "list", name: "something", message: "Wtf?", choices: [{name: "product A", value: "A"}]}]);
+    // console.log(getSomething);
     const name = flags.name ?? 'world'
     this.log(`hello ${name} from ./src/commands/hello.ts`)
     if (args.file && flags.force) {
       this.log(`you input --force and --file: ${args.file}`)
     }
 
+
     // console.log(this.getTypeBySuffix(flags.name as string));
     // let metadataType = this.getTypeBySuffix(flags.name as string)
     // let component = Object.assign(metadataType, {path: "src-temp", recommended: "src-access-management"});
     // this.moveComponentToPackage(component , "src-access-management");
 
-    const converter = new MetadataConverter();
-    const components = ComponentSet.fromSource("src-temp/objects/Account/fields/ABNACN__c.field-meta.xml");
-    await converter.convert(components, 'source', {
-      type: 'merge',
-      mergeWith: ComponentSet.fromSource(path.resolve("packages/core-crm")).getSourceComponents(),
-      defaultDirectory: 'packages/core-crm',
-      forceIgnoredPaths: components.forceIgnoredPaths ?? new Set<string>()
+    // const converter = new MetadataConverter();
+    // const components = ComponentSet.fromSource("src-temp/classes/AccountAccountRelationTriggerTest.cls");
+    // console.log(components);
+    // await converter.convert(components, 'source', {
+    //   type: 'merge',
+    //   mergeWith: ComponentSet.fromSource(path.resolve("packages/core-crm")).getSourceComponents(),
+    //   defaultDirectory: 'packages/core-crm',
+    //   forceIgnoredPaths: components.forceIgnoredPaths ?? new Set<string>()
+    // });
+
+  }
+
+  private getChoicesForMovingMetadata() {
+    return [
+      { name: `Recommended (x)`, value: MoveAction.RECOMMENDED },
+      { name: "Existing", value: MoveAction.EXISTING },
+      { name: "Do nothing", value: MoveAction.EXISTING },
+    ];
+  }
+
+  /**
+   * Fuzzy search for existing packages in the sfdx-project.json
+   * @param answers
+   * @param input
+   * @returns
+   */
+  private searchExistingPackages(answers, input) {
+    const packages = ProjectConfig.getAllPackages(null);
+    if (input) {
+      return fuzzy.filter(input, packages).map((elem) => elem.string);
+    } else return packages;
+  }
+
+  private getRemoteAdditions(targetOrg: string) {
+    let resultJson = child_process.execSync(
+      `sfdx force:source:status -u ${targetOrg} --json`,
+      {
+        encoding: 'utf8',
+        stdio: 'pipe',
+        maxBuffer: 1024*1024*5
+      }
+    );
+
+    let result = JSON.parse(resultJson);
+    result.result.filter((elem) => {
+      return elem.state === "Remote Add"
     });
+
+    return result;
   }
 
   /**
@@ -117,6 +188,13 @@ hello world from ./src/hello.ts!
 
     // // if (component.)
   }
+}
+
+enum MoveAction {
+  RECOMMENDED = "recommended",
+  NEW = "new",
+  EXISTING = "existing",
+  NOTHING = "nothing"
 }
 
 interface Component extends MetadataType {
