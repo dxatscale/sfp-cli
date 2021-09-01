@@ -1,7 +1,7 @@
 import {Command, flags} from '@oclif/command'
-import {RegistryAccess, MetadataType, MetadataRegistry, registry as defaultRegistry, ComponentSet, MetadataConverter} from '@salesforce/source-deploy-retrieve';
+import {RegistryAccess, MetadataType, MetadataRegistry, registry as defaultRegistry, ComponentSet, MetadataConverter, MetadataResolver} from '@salesforce/source-deploy-retrieve';
 import path = require('path');
-import FileSystem from "../../utils/FileSystem";
+import FileSystem from "../utils/FileSystem";
 const glob = require("glob");
 import * as fs from "fs-extra";
 import child_process = require("child_process");
@@ -9,7 +9,7 @@ import inquirer = require('inquirer');
 inquirer.registerPrompt('autocomplete', require('inquirer-autocomplete-prompt'));
 import ProjectConfig from "@dxatscale/sfpowerscripts.core/lib/project/ProjectConfig";
 const fuzzy = require("fuzzy");
-import * as resource from "../../resource.json";
+import * as resource from "../resource.json";
 
 export default class Pull extends Command {
   static description = 'describe the command here'
@@ -43,6 +43,7 @@ hello world from ./src/hello.ts!
     }
 
     console.log(`Found ${remoteAdditions.length} new metadata components`);
+    const defaultPackage = ProjectConfig.getDefaultSFDXPackageDescriptor(null);
 
     let result = [];
     for (let remoteAddition of remoteAdditions) {
@@ -83,8 +84,36 @@ hello world from ./src/hello.ts!
 
     console.log(result);
 
+    child_process.execSync(
+      `sfdx force:source:pull -u ${flags.targetusername} -f`,
+      {
+        encoding: 'utf8',
+        stdio: 'pipe',
+        maxBuffer: 1024*1024*5
+      }
+    );
 
+    const componentsFromDefaultPackage =  new MetadataResolver().getComponentsFromPath(defaultPackage.path);
 
+    //
+    for (let elem of result) {
+      let component = componentsFromDefaultPackage.find((component) => component.name === elem.fullName && component.type.name === elem.type);
+
+      const converter = new MetadataConverter();
+      const components = ComponentSet.fromSource(component.xml);
+
+      await converter.convert(components, 'source', {
+        type: 'merge',
+        mergeWith: ComponentSet.fromSource(path.resolve(elem.destination)).getSourceComponents(),
+        defaultDirectory: elem.destination,
+        forceIgnoredPaths: components.forceIgnoredPaths ?? new Set<string>()
+      });
+
+      fs.unlinkSync(component.xml);
+      if (component.content) {
+        fs.unlinkSync(component.content);
+      }
+    }
     // let getSomething = await inquirer.prompt([{type: "list", name: "something", message: "Wtf?", choices: [{name: "product A", value: "A"}]}]);
     // console.log(getSomething);
     const name = flags.name ?? 'world'
@@ -99,15 +128,7 @@ hello world from ./src/hello.ts!
     // let component = Object.assign(metadataType, {path: "src-temp", recommended: "src-access-management"});
     // this.moveComponentToPackage(component , "src-access-management");
 
-    // const converter = new MetadataConverter();
-    // const components = ComponentSet.fromSource("src-temp/classes/AccountAccountRelationTriggerTest.cls");
-    // console.log(components);
-    // await converter.convert(components, 'source', {
-    //   type: 'merge',
-    //   mergeWith: ComponentSet.fromSource(path.resolve("packages/core-crm")).getSourceComponents(),
-    //   defaultDirectory: 'packages/core-crm',
-    //   forceIgnoredPaths: components.forceIgnoredPaths ?? new Set<string>()
-    // });
+
 
   }
 
@@ -139,7 +160,6 @@ hello world from ./src/hello.ts!
       return fuzzy.filter(input, packages).map((elem) => elem.string);
     } else return packages;
   }
-
   private getRemoteAdditions(targetOrg: string) {
     let resultJson = child_process.execSync(
       `sfdx force:source:status -u ${targetOrg} --json`,
