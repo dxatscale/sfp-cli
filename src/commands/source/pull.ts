@@ -9,6 +9,7 @@ import inquirer = require('inquirer');
 inquirer.registerPrompt('autocomplete', require('inquirer-autocomplete-prompt'));
 import ProjectConfig from "@dxatscale/sfpowerscripts.core/lib/project/ProjectConfig";
 const fuzzy = require("fuzzy");
+import * as resource from "../../resource.json";
 
 export default class Pull extends Command {
   static description = 'describe the command here'
@@ -34,8 +35,7 @@ hello world from ./src/hello.ts!
 
   async run() {
     const {args, flags} = this.parse(Pull);
-    const remoteAdditions = ["something"];
-    // const remoteAdditions = this.getRemoteAdditions(flags.targetusername);
+    const remoteAdditions = this.getRemoteAdditions(flags.targetusername);
     // TODO: Check for conflicts
     if (remoteAdditions.length === 0) {
       console.log("No changes found");
@@ -44,18 +44,47 @@ hello world from ./src/hello.ts!
 
     console.log(`Found ${remoteAdditions.length} new metadata components`);
 
-    let getMoveAction = await inquirer.prompt({type: "list", name: "moveAction", message: "Select a package for X?", choices: this.getChoicesForMovingMetadata()});
-    console.log(getMoveAction);
+    let result = [];
+    for (let remoteAddition of remoteAdditions) {
+      const obj = {
+        fullName: remoteAddition.fullName,
+        type: remoteAddition.type,
+        destination: null
+      };
 
-    if()
-    let getExistingPackage = await inquirer.prompt([{
-      type: "autocomplete",
-      name: "package",
-      message: "Search for package",
-      source: this.searchExistingPackages
-    }]);
+      let getMoveAction = await inquirer.prompt({
+        type: "list",
+        name: "moveAction",
+        message: `Select a package for ${obj.type} ${obj.fullName}?`,
+        choices: this.getChoicesForMovingMetadata(obj),
+      });
+      console.log(getMoveAction);
 
-    console.log(getExistingPackage);
+      if(getMoveAction.moveAction === MoveAction.RECOMMENDED) {
+        obj.destination = resource.types[obj.type].recommended;
+      } else if (getMoveAction.moveAction === MoveAction.EXISTING) {
+        let getExistingPackage = await inquirer.prompt([{
+          type: "autocomplete",
+          name: "package",
+          message: "Search for package",
+          source: this.searchExistingPackages
+        }]);
+        console.log(getExistingPackage);
+
+        let packageDescriptor = ProjectConfig.getSFDXPackageDescriptor(null, getExistingPackage.package);
+        obj.destination = packageDescriptor.path;
+      } else if (getMoveAction.moveAction === MoveAction.NOTHING) {
+        continue;
+      } else {
+        throw new Error(`Unrecognised MoveAction ${getMoveAction.moveAction}`);
+      }
+      result.push(obj);
+    }
+
+    console.log(result);
+
+
+
     // let getSomething = await inquirer.prompt([{type: "list", name: "something", message: "Wtf?", choices: [{name: "product A", value: "A"}]}]);
     // console.log(getSomething);
     const name = flags.name ?? 'world'
@@ -82,12 +111,20 @@ hello world from ./src/hello.ts!
 
   }
 
-  private getChoicesForMovingMetadata() {
-    return [
-      { name: `Recommended (x)`, value: MoveAction.RECOMMENDED },
-      { name: "Existing", value: MoveAction.EXISTING },
-      { name: "Do nothing", value: MoveAction.EXISTING },
-    ];
+  private getChoicesForMovingMetadata(metadata) {
+    if (resource.types[metadata.type]?.recommended) {
+      return [
+        { name: `Recommended (${resource.types[metadata.type].recommended})`, value: MoveAction.RECOMMENDED },
+        { name: "Existing", value: MoveAction.EXISTING },
+        { name: "Do nothing", value: MoveAction.NOTHING },
+      ];
+    } else {
+      return [
+        { name: "Existing", value: MoveAction.EXISTING },
+        { name: "Do nothing", value: MoveAction.NOTHING },
+      ];
+    }
+
   }
 
   /**
@@ -114,11 +151,7 @@ hello world from ./src/hello.ts!
     );
 
     let result = JSON.parse(resultJson);
-    result.result.filter((elem) => {
-      return elem.state === "Remote Add"
-    });
-
-    return result;
+    return result.result.filter((elem) => elem.state === "Remote Add");
   }
 
   /**

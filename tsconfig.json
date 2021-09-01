@@ -5,6 +5,7 @@
     "module": "commonjs",
     "outDir": "lib",
     "rootDir": "src",
+    "resolveJsonModule": true,
     "strict": false,
     "strictNullChecks": false,
     "strictPropertyInitialization": false,
