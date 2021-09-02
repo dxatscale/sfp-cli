@@ -86,8 +86,8 @@ hello world from ./src/hello.ts!
       }
       result.push(obj);
     }
-    console.log(result);
 
+    console.log('Pulling source components...');
     child_process.execSync(
       `sfdx force:source:pull -u ${flags.targetusername} -f`,
       {
@@ -96,7 +96,10 @@ hello world from ./src/hello.ts!
         maxBuffer: 1024*1024*5
       }
     );
+    console.log('Successfully pulled source components');
 
+
+    console.log("Moving source components...")
     const componentsFromDefaultPackage =  new MetadataResolver().getComponentsFromPath(defaultPackage.path);
     //
     for (let elem of result) {
@@ -137,6 +140,9 @@ hello world from ./src/hello.ts!
         fs.unlinkSync(component.content);
       }
     }
+
+
+    console.log("Successfully moved source components");
     // let getSomething = await inquirer.prompt([{type: "list", name: "something", message: "Wtf?", choices: [{name: "product A", value: "A"}]}]);
     // console.log(getSomething);
     const name = flags.name ?? 'world'
