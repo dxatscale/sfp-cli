@@ -63,12 +63,45 @@ hello world from ./src/hello.ts!
 
       if(getMoveAction.moveAction === MoveAction.RECOMMENDED) {
         obj.destination = resource.types[obj.type].recommended;
+      } else if (getMoveAction.moveAction === MoveAction.NEW) {
+        const getNewPackage = await inquirer.prompt([
+          {
+            type: "input",
+            name: "name",
+            message: "Input name of the new package"
+          },
+          {
+            type: "list",
+            name: "anchor",
+            message: `Select position of the new package`,
+            loop: false,
+            choices: ProjectConfig.getAllPackages(null),
+            pageSize: 10
+          },
+          {
+            type: "list",
+            name: "position",
+            message: "Position",
+            choices: [{name: "Before", value: "before"}, {name: "After", value: 'after'}]
+          }
+        ]);
+
+        let indexOfNewPackage = ProjectConfig.getAllPackages(null).findIndex((packageName) => packageName === getNewPackage.anchor);
+        if (getNewPackage.position === "after") indexOfNewPackage++;
+
+
+        Pull.createNewPackage(null, getNewPackage.name, path.join("src", getNewPackage.name), indexOfNewPackage);
+
+        fs.mkdirpSync(path.join("src", getNewPackage.name));
+
+        obj.destination = path.join("src", getNewPackage.name);
       } else if (getMoveAction.moveAction === MoveAction.EXISTING) {
         let getExistingPackage = await inquirer.prompt([{
           type: "autocomplete",
           name: "package",
           message: "Search for package",
-          source: this.searchExistingPackages
+          source: this.searchExistingPackages,
+          pageSize: 10
         }]);
         console.log(getExistingPackage);
 
@@ -132,16 +165,48 @@ hello world from ./src/hello.ts!
 
   }
 
+  /**
+   *
+   * @param projectDirectory
+   * @param nameOfPackage
+   * @param pathOfPackage
+   * @param indexOfPackage
+   */
+   public static createNewPackage(
+    projectDirectory: string,
+    nameOfPackage: string,
+    pathOfPackage: string,
+    indexOfPackage: number
+  ) {
+    const packageConfig = ProjectConfig.getSFDXPackageManifest(projectDirectory);
+    const newPackageDescriptor = {
+      path: pathOfPackage,
+      package: nameOfPackage,
+      versionNumber: "1.0.0.0"
+    };
+    packageConfig.packageDirectories.splice(indexOfPackage, 0, newPackageDescriptor);
+
+    let pathToProjectConfig: string;
+    if (projectDirectory) {
+      pathToProjectConfig = path.join(projectDirectory, "sfdx-project.json");
+    } else {
+      pathToProjectConfig = "sfdx-project.json";
+    }
+    fs.writeJSONSync(pathToProjectConfig, packageConfig, { spaces: 2 });
+  }
+
   private getChoicesForMovingMetadata(metadata) {
     if (resource.types[metadata.type]?.recommended) {
       return [
         { name: `Recommended (${resource.types[metadata.type].recommended})`, value: MoveAction.RECOMMENDED },
         { name: "Existing", value: MoveAction.EXISTING },
+        { name: "New", value: MoveAction.NEW},
         { name: "Do nothing", value: MoveAction.NOTHING },
       ];
     } else {
       return [
         { name: "Existing", value: MoveAction.EXISTING },
+        { name: "New", value: MoveAction.NEW},
         { name: "Do nothing", value: MoveAction.NOTHING },
       ];
     }
