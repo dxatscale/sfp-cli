@@ -47,66 +47,30 @@ hello world from ./src/hello.ts!
 
     let result = [];
     for (let remoteAddition of remoteAdditions) {
-      const obj = {
+      const obj: Instruction = {
         fullName: remoteAddition.fullName,
         type: remoteAddition.type,
-        destination: null
+        destination: []
       };
 
-      let getMoveAction = await inquirer.prompt({
-        type: "list",
-        name: "moveAction",
-        message: `Select a package for ${obj.type} ${obj.fullName}?`,
-        choices: this.getChoicesForMovingMetadata(obj),
-      });
-      console.log(getMoveAction);
+      let getMoveAction = await this.getMoveAction(obj);
 
       if(getMoveAction.moveAction === MoveAction.RECOMMENDED) {
         obj.destination = resource.types[obj.type].recommended;
+        if (resource.types[obj.type].strategy === Strategy.PLUS_ONE) {
+          obj.destination.push(...resource.types[obj.type].recommended.map((elem) => elem.package));
+          await this.getPlusOneMoveAction(obj);
+        } else if (resource.types[obj.type].strategy === Strategy.DUPLICATE) {
+          obj.destination.push(...resource.types[obj.type].recommended.map((elem) => elem.package));
+        } else if (resource.types[obj.type].strategy === Strategy.SINGLE) {
+          obj.destination.push(resource.types[obj.type].recommended[0].package);
+        } else {
+          throw new Error("Strategy not defined or unknown");
+        }
       } else if (getMoveAction.moveAction === MoveAction.NEW) {
-        const getNewPackage = await inquirer.prompt([
-          {
-            type: "input",
-            name: "name",
-            message: "Input name of the new package"
-          },
-          {
-            type: "list",
-            name: "anchor",
-            message: `Select position of the new package`,
-            loop: false,
-            choices: ProjectConfig.getAllPackages(null),
-            pageSize: 10
-          },
-          {
-            type: "list",
-            name: "position",
-            message: "Position",
-            choices: [{name: "Before", value: "before"}, {name: "After", value: 'after'}]
-          }
-        ]);
-
-        let indexOfNewPackage = ProjectConfig.getAllPackages(null).findIndex((packageName) => packageName === getNewPackage.anchor);
-        if (getNewPackage.position === "after") indexOfNewPackage++;
-
-
-        Pull.createNewPackage(null, getNewPackage.name, path.join("src", getNewPackage.name), indexOfNewPackage);
-
-        fs.mkdirpSync(path.join("src", getNewPackage.name));
-
-        obj.destination = path.join("src", getNewPackage.name);
+        await this.getNewpackage(obj);
       } else if (getMoveAction.moveAction === MoveAction.EXISTING) {
-        let getExistingPackage = await inquirer.prompt([{
-          type: "autocomplete",
-          name: "package",
-          message: "Search for package",
-          source: this.searchExistingPackages,
-          pageSize: 10
-        }]);
-        console.log(getExistingPackage);
-
-        let packageDescriptor = ProjectConfig.getSFDXPackageDescriptor(null, getExistingPackage.package);
-        obj.destination = packageDescriptor.path;
+        await this.getExistingPackage(obj);
       } else if (getMoveAction.moveAction === MoveAction.NOTHING) {
         continue;
       } else {
@@ -135,12 +99,15 @@ hello world from ./src/hello.ts!
       const converter = new MetadataConverter();
       const components = ComponentSet.fromSource(component.xml);
 
-      await converter.convert(components, 'source', {
-        type: 'merge',
-        mergeWith: ComponentSet.fromSource(path.resolve(elem.destination)).getSourceComponents(),
-        defaultDirectory: elem.destination,
-        forceIgnoredPaths: components.forceIgnoredPaths ?? new Set<string>()
-      });
+      for(let dest of elem.destination) {
+        await converter.convert(components, 'source', {
+          type: 'merge',
+          mergeWith: ComponentSet.fromSource(path.resolve(dest)).getSourceComponents(),
+          defaultDirectory: dest,
+          forceIgnoredPaths: components.forceIgnoredPaths ?? new Set<string>()
+        });
+      }
+
 
       fs.unlinkSync(component.xml);
       if (component.content) {
@@ -163,6 +130,83 @@ hello world from ./src/hello.ts!
 
 
 
+  }
+
+  private async getExistingPackage(obj: Instruction) {
+    let getExistingPackage = await inquirer.prompt([{
+      type: "autocomplete",
+      name: "package",
+      message: "Search for package",
+      source: this.searchExistingPackages,
+      pageSize: 10
+    }]);
+
+    let packageDescriptor = ProjectConfig.getSFDXPackageDescriptor(null, getExistingPackage.package);
+    obj.destination.push(packageDescriptor.path);
+  }
+
+  private async getNewpackage(obj: Instruction) {
+    const getNewPackage = await inquirer.prompt([
+      {
+        type: "input",
+        name: "name",
+        message: "Input name of the new package"
+      },
+      {
+        type: "list",
+        name: "anchor",
+        message: `Select position of the new package`,
+        loop: false,
+        choices: ProjectConfig.getAllPackages(null),
+        pageSize: 10
+      },
+      {
+        type: "list",
+        name: "position",
+        message: "Position",
+        choices: [{ name: "Before", value: "before" }, { name: "After", value: 'after' }]
+      }
+    ]);
+
+    let indexOfNewPackage = ProjectConfig.getAllPackages(null).findIndex((packageName) => packageName === getNewPackage.anchor);
+    if (getNewPackage.position === "after")
+      indexOfNewPackage++;
+
+
+    Pull.createNewPackage(null, getNewPackage.name, path.join("src", getNewPackage.name), indexOfNewPackage);
+
+    fs.mkdirpSync(path.join("src", getNewPackage.name));
+
+    obj.destination.push(path.join("src", getNewPackage.name));
+  }
+
+  private async getMoveAction(obj: Instruction) {
+    return await inquirer.prompt({
+      type: "list",
+      name: "moveAction",
+      message: `Select a package for ${obj.type} ${obj.fullName}?`,
+      choices: this.getChoicesForMovingMetadata(obj),
+    });
+  }
+
+  private async getPlusOneMoveAction(obj: Instruction) {
+    let getMoveAction = await inquirer.prompt({
+      type: "list",
+      name: "moveAction",
+      message: `Select a package for ${obj.type} ${obj.fullName}?`,
+      choices: [
+        { name: "Existing", value: MoveAction.EXISTING },
+        { name: "New", value: MoveAction.NEW}
+      ]
+    });
+
+    if (getMoveAction.moveAction === MoveAction.EXISTING) {
+      await this.getExistingPackage(obj);
+    } else if (getMoveAction.moveAction === MoveAction.NEW) {
+      await this.getNewpackage(obj);
+    } else {
+      throw new Error(`Unrecognised MoveAction ${getMoveAction.moveAction}`);
+    }
   }
 
   /**
@@ -198,7 +242,7 @@ hello world from ./src/hello.ts!
   private getChoicesForMovingMetadata(metadata) {
     if (resource.types[metadata.type]?.recommended) {
       return [
-        { name: `Recommended (${resource.types[metadata.type].recommended})`, value: MoveAction.RECOMMENDED },
+        { name: `Recommended (Strategy: ${resource.types[metadata.type].strategy}) ${resource.types[metadata.type].recommended.map(elem => elem.package)}`, value: MoveAction.RECOMMENDED },
         { name: "Existing", value: MoveAction.EXISTING },
         { name: "New", value: MoveAction.NEW},
         { name: "Do nothing", value: MoveAction.NOTHING },
@@ -220,11 +264,16 @@ hello world from ./src/hello.ts!
    * @returns
    */
   private searchExistingPackages(answers, input) {
-    const packages = ProjectConfig.getAllPackages(null);
+    let packages = ProjectConfig.getAllPackages(null);
+
+    const defaultPackage = ProjectConfig.getDefaultSFDXPackageDescriptor(null).package;
+    packages = packages.filter((packageName) => packageName !== defaultPackage);
+
     if (input) {
       return fuzzy.filter(input, packages).map((elem) => elem.string);
     } else return packages;
   }
+
   private getRemoteAdditions(targetOrg: string) {
     let resultJson = child_process.execSync(
       `sfdx force:source:status -u ${targetOrg} --json`,
@@ -315,8 +364,20 @@ enum MoveAction {
   NOTHING = "nothing"
 }
 
+enum Strategy {
+  SINGLE = "single",
+  DUPLICATE = "duplicate",
+  PLUS_ONE = "plus-one"
+}
+
 interface Component extends MetadataType {
   // path of component
   path: string;
   recommended: string;
+}
+
+interface Instruction {
+  fullName: string,
+  type: string,
+  destination: string[]
 }
