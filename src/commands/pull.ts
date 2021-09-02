@@ -48,7 +48,7 @@ hello world from ./src/hello.ts!
       return;
     }
 
-    console.log(`Found ${remoteAdditions.length} new metadata components`);
+    console.log(`Found ${remoteAdditions.length} new metadata components, which require a new home`);
     const defaultPackage = ProjectConfig.getDefaultSFDXPackageDescriptor(null);
 
     let result = [];
@@ -63,14 +63,13 @@ hello world from ./src/hello.ts!
       let getMoveAction = await this.getMoveAction(obj);
 
       if(getMoveAction.moveAction === MoveAction.RECOMMENDED) {
-        obj.destination = resource.types[obj.type].recommended;
         if (resource.types[obj.type].strategy === Strategy.PLUS_ONE) {
-          obj.destination.push(...resource.types[obj.type].recommended.map((elem) => elem.package));
+          obj.destination.push(...resource.types[obj.type].recommended);
           await this.getPlusOneMoveAction(obj);
         } else if (resource.types[obj.type].strategy === Strategy.DUPLICATE) {
-          obj.destination.push(...resource.types[obj.type].recommended.map((elem) => elem.package));
+          obj.destination.push(...resource.types[obj.type].recommended);
         } else if (resource.types[obj.type].strategy === Strategy.SINGLE) {
-          this.getSingleMoveAction(obj, resource.types[obj.type].recommended.map((elem) => elem.package));
+          await this.getSingleMoveAction(obj, resource.types[obj.type].recommended);
         } else if (resource.types[obj.type].strategy === Strategy.DELETE) {
           // do nothing
         } else {
@@ -87,7 +86,6 @@ hello world from ./src/hello.ts!
       }
       result.push(obj);
     }
-
     console.log(result);
 
     child_process.execSync(
@@ -100,7 +98,6 @@ hello world from ./src/hello.ts!
     );
 
     const componentsFromDefaultPackage =  new MetadataResolver().getComponentsFromPath(defaultPackage.path);
-
     //
     for (let elem of result) {
       let component = componentsFromDefaultPackage.find((component) => component.name === elem.fullName && component.type.name === elem.type);
@@ -109,20 +106,26 @@ hello world from ./src/hello.ts!
       const components = ComponentSet.fromSource(component.xml);
 
       for(let dest of elem.destination) {
-        if (elem.aliasfy) {
-          for (let alias of fs.readdirSync(dest)) {
+        if (dest.aliasfy) {
+          let files = fs.readdirSync(dest.package);
+          let aliases = files.filter((file) => {
+            let filepath = path.join(dest.package, file);
+            return fs.lstatSync(filepath).isDirectory();
+          });
+
+          for (let alias of aliases) {
             await converter.convert(components, 'source', {
               type: 'merge',
-              mergeWith: ComponentSet.fromSource(path.resolve(dest, alias)).getSourceComponents(),
-              defaultDirectory: path.join(dest, alias),
+              mergeWith: ComponentSet.fromSource(path.resolve(dest.package, alias)).getSourceComponents(),
+              defaultDirectory: path.join(dest.package, alias),
               forceIgnoredPaths: components.forceIgnoredPaths ?? new Set<string>()
             });
           }
         } else {
           await converter.convert(components, 'source', {
             type: 'merge',
-            mergeWith: ComponentSet.fromSource(path.resolve(dest)).getSourceComponents(),
-            defaultDirectory: dest,
+            mergeWith: ComponentSet.fromSource(path.resolve(dest.package)).getSourceComponents(),
+            defaultDirectory: dest.package,
             forceIgnoredPaths: components.forceIgnoredPaths ?? new Set<string>()
           });
         }
@@ -162,7 +165,7 @@ hello world from ./src/hello.ts!
     }]);
 
     let packageDescriptor = ProjectConfig.getSFDXPackageDescriptor(null, getExistingPackage.package);
-    obj.destination.push(packageDescriptor.path);
+    obj.destination.push({package: packageDescriptor.path});
   }
 
   private async getNewpackage(obj: Instruction) {
@@ -197,7 +200,7 @@ hello world from ./src/hello.ts!
 
     fs.mkdirpSync(path.join("src", getNewPackage.name));
 
-    obj.destination.push(path.join("src", getNewPackage.name));
+    obj.destination.push({package: path.join("src", getNewPackage.name)});
   }
 
   private async getMoveAction(obj: Instruction) {
@@ -229,15 +232,15 @@ hello world from ./src/hello.ts!
     }
   }
 
-  private async getSingleMoveAction(obj: Instruction, recommended: string[]) {
+  private async getSingleMoveAction(obj: Instruction, recommended: {package: string; aliasfy: boolean}[]) {
     const getPackage = await inquirer.prompt({
       type: "list",
       name: "package",
       message: "Select recommended package",
-      choices: recommended
+      choices: recommended.map((elem) => elem.package)
     });
 
-    obj.destination.push(getPackage.package);
+    obj.destination.push(recommended.find((elem) => elem.package === getPackage.package));
   }
 
   /**
@@ -436,5 +439,5 @@ interface Component extends MetadataType {
 interface Instruction {
   fullName: string,
   type: string,
-  destination: string[]
+  destination: {package: string; aliasfy?: boolean}[]
 }
