@@ -10,6 +10,7 @@
     "strictNullChecks": false,
     "strictPropertyInitialization": false,
     "noImplicitAny": false,
+    "skipLibCheck": true,
     "target": "es2017",
   },
   "include": [
