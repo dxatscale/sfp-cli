@@ -58,7 +58,9 @@
     "commands": "./lib/commands",
     "bin": "sfp",
     "plugins": [
-      "@oclif/plugin-help"
+      "@oclif/plugin-help",
+      "@oclif/plugin-warn-if-update-available",
+      "@oclif/plugin-update"
     ]
   },
   "repository": "dxatscale/sfp-cli",
