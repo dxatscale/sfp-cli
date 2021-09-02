@@ -32,10 +32,13 @@ hello world from ./src/hello.ts!
 
   static args = [{name: 'file'}]
   private readonly registry: MetadataRegistry = defaultRegistry;
-  // must be run within project directory
 
   async run() {
     const {args, flags} = this.parse(Pull);
+
+    // TODO: Move to property requiresProject: boolean
+    if (!fs.existsSync("sfdx-project.json")) throw new Error("This command must be run in the root directory of a SFDX project");
+
     const statusResult = this.getStatusResult(flags.targetusername, flags.forceoverwrite);
     const remoteAdditions = statusResult.filter((elem) => elem.state === "Remote Add");
 
@@ -67,7 +70,9 @@ hello world from ./src/hello.ts!
         } else if (resource.types[obj.type].strategy === Strategy.DUPLICATE) {
           obj.destination.push(...resource.types[obj.type].recommended.map((elem) => elem.package));
         } else if (resource.types[obj.type].strategy === Strategy.SINGLE) {
-          obj.destination.push(resource.types[obj.type].recommended[0].package);
+          this.getSingleMoveAction(obj, resource.types[obj.type].recommended.map((elem) => elem.package));
+        } else if (resource.types[obj.type].strategy === Strategy.DELETE) {
+          // do nothing
         } else {
           throw new Error("Strategy not defined or unknown");
         }
@@ -104,12 +109,23 @@ hello world from ./src/hello.ts!
       const components = ComponentSet.fromSource(component.xml);
 
       for(let dest of elem.destination) {
-        await converter.convert(components, 'source', {
-          type: 'merge',
-          mergeWith: ComponentSet.fromSource(path.resolve(dest)).getSourceComponents(),
-          defaultDirectory: dest,
-          forceIgnoredPaths: components.forceIgnoredPaths ?? new Set<string>()
-        });
+        if (elem.aliasfy) {
+          for (let alias of fs.readdirSync(dest)) {
+            await converter.convert(components, 'source', {
+              type: 'merge',
+              mergeWith: ComponentSet.fromSource(path.resolve(dest, alias)).getSourceComponents(),
+              defaultDirectory: path.join(dest, alias),
+              forceIgnoredPaths: components.forceIgnoredPaths ?? new Set<string>()
+            });
+          }
+        } else {
+          await converter.convert(components, 'source', {
+            type: 'merge',
+            mergeWith: ComponentSet.fromSource(path.resolve(dest)).getSourceComponents(),
+            defaultDirectory: dest,
+            forceIgnoredPaths: components.forceIgnoredPaths ?? new Set<string>()
+          });
+        }
       }
 
 
@@ -213,6 +229,17 @@ hello world from ./src/hello.ts!
     }
   }
 
+  private async getSingleMoveAction(obj: Instruction, recommended: string[]) {
+    const getPackage = await inquirer.prompt({
+      type: "list",
+      name: "package",
+      message: "Select recommended package",
+      choices: recommended
+    });
+
+    obj.destination.push(getPackage.package);
+  }
+
   /**
    *
    * @param projectDirectory
@@ -244,9 +271,10 @@ hello world from ./src/hello.ts!
   }
 
   private getChoicesForMovingMetadata(metadata) {
-    if (resource.types[metadata.type]?.recommended) {
+    if (resource.types[metadata.type]?.strategy) {
+      let recommendedPackages = resource.types[metadata.type].recommended?.map(elem => elem.package);
       return [
-        { name: `Recommended (Strategy: ${resource.types[metadata.type].strategy}) ${resource.types[metadata.type].recommended.map(elem => elem.package)}`, value: MoveAction.RECOMMENDED },
+        { name: `Recommended (Strategy: ${resource.types[metadata.type].strategy}) ${recommendedPackages ? recommendedPackages : ""}`, value: MoveAction.RECOMMENDED },
         { name: "Existing", value: MoveAction.EXISTING },
         { name: "New", value: MoveAction.NEW},
         { name: "Do nothing", value: MoveAction.NOTHING },
@@ -395,7 +423,8 @@ enum MoveAction {
 enum Strategy {
   SINGLE = "single",
   DUPLICATE = "duplicate",
-  PLUS_ONE = "plus-one"
+  PLUS_ONE = "plus-one",
+  DELETE = "delete"
 }
 
 interface Component extends MetadataType {
