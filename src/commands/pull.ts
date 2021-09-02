@@ -10,6 +10,7 @@ inquirer.registerPrompt('autocomplete', require('inquirer-autocomplete-prompt'))
 import ProjectConfig from "@dxatscale/sfpowerscripts.core/lib/project/ProjectConfig";
 const fuzzy = require("fuzzy");
 import * as resource from "../resource.json";
+const Table = require("cli-table");
 
 export default class Pull extends Command {
   static description = 'describe the command here'
@@ -25,7 +26,7 @@ hello world from ./src/hello.ts!
     // flag with a value (-n, --name=VALUE)
     name: flags.string({char: 'n', description: 'name to print'}),
     // flag with no value (-f, --force)
-    force: flags.boolean({char: 'f'}),
+    forceoverwrite: flags.boolean({char: 'f'}),
     targetusername: flags.string({char: 'u'})
   }
 
@@ -35,7 +36,9 @@ hello world from ./src/hello.ts!
 
   async run() {
     const {args, flags} = this.parse(Pull);
-    const remoteAdditions = this.getRemoteAdditions(flags.targetusername);
+    const statusResult = this.getStatusResult(flags.targetusername, flags.forceoverwrite);
+    const remoteAdditions = statusResult.filter((elem) => elem.state === "Remote Add");
+
     // TODO: Check for conflicts
     if (remoteAdditions.length === 0) {
       console.log("No changes found");
@@ -47,6 +50,7 @@ hello world from ./src/hello.ts!
 
     let result = [];
     for (let remoteAddition of remoteAdditions) {
+      console.log();
       const obj: Instruction = {
         fullName: remoteAddition.fullName,
         type: remoteAddition.type,
@@ -118,7 +122,7 @@ hello world from ./src/hello.ts!
     // console.log(getSomething);
     const name = flags.name ?? 'world'
     this.log(`hello ${name} from ./src/commands/hello.ts`)
-    if (args.file && flags.force) {
+    if (args.file) {
       this.log(`you input --force and --file: ${args.file}`)
     }
 
@@ -184,7 +188,7 @@ hello world from ./src/hello.ts!
     return await inquirer.prompt({
       type: "list",
       name: "moveAction",
-      message: `Select a package for ${obj.type} ${obj.fullName}?`,
+      message: `Select a package for ${obj.type} ${obj.fullName}`,
       choices: this.getChoicesForMovingMetadata(obj),
     });
   }
@@ -193,7 +197,7 @@ hello world from ./src/hello.ts!
     let getMoveAction = await inquirer.prompt({
       type: "list",
       name: "moveAction",
-      message: `Select a package for ${obj.type} ${obj.fullName}?`,
+      message: `Select additional package`,
       choices: [
         { name: "Existing", value: MoveAction.EXISTING },
         { name: "New", value: MoveAction.NEW}
@@ -274,7 +278,8 @@ hello world from ./src/hello.ts!
     } else return packages;
   }
 
-  private getRemoteAdditions(targetOrg: string) {
+  private getStatusResult(targetOrg: string, isForceOverwrite: boolean) {
+    let statusResult;
     let resultJson = child_process.execSync(
       `sfdx force:source:status -u ${targetOrg} --json`,
       {
@@ -285,7 +290,30 @@ hello world from ./src/hello.ts!
     );
 
     let result = JSON.parse(resultJson);
-    return result.result.filter((elem) => elem.state === "Remote Add");
+
+    const conflicts = result.result.filter((elem) => elem.state.endsWith("(Conflict)"));
+
+    if (conflicts.length > 0 && !isForceOverwrite) {
+      this.printStatus(conflicts);
+      throw new Error("Source conflict(s) detected. Verify that you want to keep the remote versions, then run 'sfp pull -f' with the --forceoverwrite (-f) option");
+    } else {
+      statusResult = result.result.filter((elem) => !elem.state.endsWith("(Conflict)") && !elem.state.startsWith("Local"));
+      this.printStatus(statusResult);
+    }
+
+    return statusResult;
+  }
+
+  private printStatus(statusResult) {
+    const table = new Table({
+      head: ["State", "Full Name", "Type", "File Path"]
+    });
+
+    statusResult.forEach((elem) => {
+      table.push([elem.state, elem.fullName, elem.type, elem.filePath ? elem.filePath : "N/A"]);
+    });
+
+    console.log(table.toString());
   }
 
   /**
