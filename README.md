@@ -28,28 +28,8 @@ USAGE
 <!-- usagestop -->
 # Commands
 <!-- commands -->
-* [`sfp hello [FILE]`](#sfp-hello-file)
 * [`sfp help [COMMAND]`](#sfp-help-command)
-
-## `sfp hello [FILE]`
-
-describe the command here
-
-```
-USAGE
-  $ sfp hello [FILE]
-
-OPTIONS
-  -f, --force
-  -h, --help       show CLI help
-  -n, --name=name  name to print
-
-EXAMPLE
-  $ sfp hello
-  hello world from ./src/hello.ts!
-```
-
-_See code: [src/commands/hello.ts](https://github.com/dxatscale/sfp-cli/blob/v0.0.0/src/commands/hello.ts)_
+* [`sfp pull`](#sfp-pull)
 
 ## `sfp help [COMMAND]`
 
@@ -67,4 +47,23 @@ OPTIONS
 ```
 
 _See code: [@oclif/plugin-help](https://github.com/oclif/plugin-help/blob/v3.2.3/src/commands/help.ts)_
+
+## `sfp pull`
+
+Pull source from scratch org to the project. Provides interactive interface for packaging new metadata.
+
+```
+USAGE
+  $ sfp pull
+
+OPTIONS
+  -f, --forceoverwrite                 ignore conflict warnings and overwrite changes to the project
+  -h, --help                           show CLI help
+  -u, --targetusername=targetusername  username or alias for the target org
+
+EXAMPLE
+  $ sfp pull -u <scratchorg>
+```
+
+_See code: [src/commands/pull.ts](https://github.com/dxatscale/sfp-cli/blob/v0.0.0/src/commands/pull.ts)_
 <!-- commandsstop -->
