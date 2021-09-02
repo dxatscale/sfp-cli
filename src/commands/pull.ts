@@ -1,8 +1,6 @@
 import {Command, flags} from '@oclif/command'
-import {RegistryAccess, MetadataType, MetadataRegistry, registry as defaultRegistry, ComponentSet, MetadataConverter, MetadataResolver} from '@salesforce/source-deploy-retrieve';
+import {ComponentSet, MetadataConverter, MetadataResolver} from '@salesforce/source-deploy-retrieve';
 import path = require('path');
-import FileSystem from "../utils/FileSystem";
-const glob = require("glob");
 import * as fs from "fs-extra";
 import child_process = require("child_process");
 import inquirer = require('inquirer');
@@ -13,25 +11,19 @@ import * as resource from "../resource.json";
 const Table = require("cli-table");
 
 export default class Pull extends Command {
-  static description = 'describe the command here'
+  static description = 'Pull source from scratch org to the project. Provides interactive interface for packaging new metadata.'
 
   static examples = [
-    `$ sfp hello
-hello world from ./src/hello.ts!
-`,
+    `$ sfp pull -u <scratchorg>`
   ]
 
   static flags = {
     help: flags.help({char: 'h'}),
-    // flag with a value (-n, --name=VALUE)
-    name: flags.string({char: 'n', description: 'name to print'}),
-    // flag with no value (-f, --force)
-    forceoverwrite: flags.boolean({char: 'f'}),
-    targetusername: flags.string({char: 'u'})
+    forceoverwrite: flags.boolean({char: 'f', description: 'ignore conflict warnings and overwrite changes to the project'}),
+    targetusername: flags.string({char: 'u', description: 'username or alias for the target org'})
   }
 
-  static args = [{name: 'file'}]
-  private readonly registry: MetadataRegistry = defaultRegistry;
+  // private readonly registry: MetadataRegistry = defaultRegistry;
 
   async run() {
     const {args, flags} = this.parse(Pull);
@@ -42,7 +34,6 @@ hello world from ./src/hello.ts!
     const statusResult = this.getStatusResult(flags.targetusername, flags.forceoverwrite);
     const remoteAdditions = statusResult.filter((elem) => elem.state === "Remote Add");
 
-    // TODO: Check for conflicts
     if (remoteAdditions.length === 0) {
       console.log("No changes found");
       return;
@@ -101,7 +92,7 @@ hello world from ./src/hello.ts!
 
     console.log("Moving source components...")
     const componentsFromDefaultPackage =  new MetadataResolver().getComponentsFromPath(defaultPackage.path);
-    //
+
     for (let elem of result) {
       let component = componentsFromDefaultPackage.find((component) => component.name === elem.fullName && component.type.name === elem.type);
 
@@ -141,24 +132,7 @@ hello world from ./src/hello.ts!
       }
     }
 
-
     console.log("Successfully moved source components");
-    // let getSomething = await inquirer.prompt([{type: "list", name: "something", message: "Wtf?", choices: [{name: "product A", value: "A"}]}]);
-    // console.log(getSomething);
-    const name = flags.name ?? 'world'
-    this.log(`hello ${name} from ./src/commands/hello.ts`)
-    if (args.file) {
-      this.log(`you input --force and --file: ${args.file}`)
-    }
-
-
-    // console.log(this.getTypeBySuffix(flags.name as string));
-    // let metadataType = this.getTypeBySuffix(flags.name as string)
-    // let component = Object.assign(metadataType, {path: "src-temp", recommended: "src-access-management"});
-    // this.moveComponentToPackage(component , "src-access-management");
-
-
-
   }
 
   private async getExistingPackage(obj: Instruction) {
@@ -362,73 +336,73 @@ hello world from ./src/hello.ts!
     console.log(table.toString());
   }
 
-  /**
-   * Implement own method, as @salesforce/source-deploy-retrieve getTypeBySuffix does not walk through children
-   * @param suffix
-   */
-  private getTypeBySuffix(suffix: string): MetadataType {
-    let metadataType: MetadataType;
+  // /**
+  //  * Implement own method, as @salesforce/source-deploy-retrieve getTypeBySuffix does not walk through children
+  //  * @param suffix
+  //  */
+  // private getTypeBySuffix(suffix: string): MetadataType {
+  //   let metadataType: MetadataType;
 
-    outer:
-    for (let type in this.registry.types) {
+  //   outer:
+  //   for (let type in this.registry.types) {
 
-      if (this.registry.types[type].suffix === suffix) {
-        metadataType = this.registry.types[type];
-        break;
-      } else if (this.registry.types[type].children) {
-        let typesOfChildren = this.registry.types[type].children?.types;
-        for (let type in typesOfChildren) {
-          if (typesOfChildren[type].suffix === suffix) {
-            metadataType = typesOfChildren[type];
-            break outer;
-          }
-        }
-      }
-    }
+  //     if (this.registry.types[type].suffix === suffix) {
+  //       metadataType = this.registry.types[type];
+  //       break;
+  //     } else if (this.registry.types[type].children) {
+  //       let typesOfChildren = this.registry.types[type].children?.types;
+  //       for (let type in typesOfChildren) {
+  //         if (typesOfChildren[type].suffix === suffix) {
+  //           metadataType = typesOfChildren[type];
+  //           break outer;
+  //         }
+  //       }
+  //     }
+  //   }
 
-    return metadataType;
-  }
+  //   return metadataType;
+  // }
 
-  private getMetadataSuffix(file: string): string {
-    let metadataSuffix: string;
+  // private getMetadataSuffix(file: string): string {
+  //   let metadataSuffix: string;
 
-    const filename = path.basename(file);
-    const match = filename.match(/\.(?<suffix>.+)-meta.xml$/i);
-    if (match?.groups?.suffix) {
-      metadataSuffix = match.groups.suffix;
-    } else {
-      metadataSuffix = "";
-    }
+  //   const filename = path.basename(file);
+  //   const match = filename.match(/\.(?<suffix>.+)-meta.xml$/i);
+  //   if (match?.groups?.suffix) {
+  //     metadataSuffix = match.groups.suffix;
+  //   } else {
+  //     metadataSuffix = "";
+  //   }
 
-    return metadataSuffix;
-  }
+  //   return metadataSuffix;
+  // }
 
-  private moveComponentToPackage(component: Component, packageDir: string) {
-    let directoryname: string;
-    if (component.folderType) {
-      let folderName = path.basename(path.dirname(component.path));
-      directoryname = path.join(component.directoryName, folderName);
-    } else directoryname = component.directoryName;
+  // private moveComponentToPackage(component: Component, packageDir: string) {
+  //   let directoryname: string;
+  //   if (component.folderType) {
+  //     let folderName = path.basename(path.dirname(component.path));
+  //     directoryname = path.join(component.directoryName, folderName);
+  //   } else directoryname = component.directoryName;
 
-    // check whether component directory exists
-    let directory = glob.sync(`${directoryname}/`, {
-      cwd: packageDir,
-      absolute: true
-    });
+  //   // check whether component directory exists
+  //   let directory = glob.sync(`${directoryname}/`, {
+  //     cwd: packageDir,
+  //     absolute: true
+  //   });
 
-    let filename = path.basename(component.path);
-    if (directory.length === 1) {
-      fs.moveSync(component.path, path.join(directory, filename), {overwrite: false});
-    } else {
-      let directory = path.join(packageDir, "main", "default", directoryname);
-      fs.mkdirpSync(directory);
-      fs.moveSync(component.path, path.join(directory, filename), {overwrite: false})
-    }
-    // const packageDirContents = FileSystem.readdirRecursive(packageDir);
-    // // packageDirContents.forEach((elem) => )
+  //   let filename = path.basename(component.path);
+  //   if (directory.length === 1) {
+  //     fs.moveSync(component.path, path.join(directory, filename), {overwrite: false});
+  //   } else {
+  //     let directory = path.join(packageDir, "main", "default", directoryname);
+  //     fs.mkdirpSync(directory);
+  //     fs.moveSync(component.path, path.join(directory, filename), {overwrite: false})
+  //   }
+  //   // const packageDirContents = FileSystem.readdirRecursive(packageDir);
+  //   // // packageDirContents.forEach((elem) => )
 
-    // // if (component.)
-  }
+  //   // // if (component.)
+  // }
 }
 
 enum MoveAction {
@@ -445,11 +419,11 @@ enum Strategy {
   DELETE = "delete"
 }
 
-interface Component extends MetadataType {
-  // path of component
-  path: string;
-  recommended: string;
-}
+// interface Component extends MetadataType {
+//   // path of component
+//   path: string;
+//   recommended: string;
+// }
 
 interface Instruction {
   fullName: string,
