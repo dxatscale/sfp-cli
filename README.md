@@ -1,7 +1,7 @@
 sfp-cli
 =======
 
-sfpowerscripts CLI
+PRE-ALPHA Developer CLI for Salesforce programs following the DX@Scale model
 
 [![oclif](https://img.shields.io/badge/cli-oclif-brightgreen.svg)](https://oclif.io)
 [![Version](https://img.shields.io/npm/v/sfp-cli.svg)](https://npmjs.org/package/sfp-cli)
@@ -15,11 +15,11 @@ sfpowerscripts CLI
 # Usage
 <!-- usage -->
 ```sh-session
-$ npm install -g sfp-cli
+$ npm install -g @dxatscale/sfp-cli
 $ sfp COMMAND
 running command...
 $ sfp (-v|--version|version)
-sfp-cli/0.0.0 darwin-x64 node-v12.16.0
+@dxatscale/sfp-cli/0.0.0 darwin-x64 node-v12.16.0
 $ sfp --help [COMMAND]
 USAGE
   $ sfp COMMAND
