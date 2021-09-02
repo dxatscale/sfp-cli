@@ -179,7 +179,12 @@ hello world from ./src/hello.ts!
       {
         type: "input",
         name: "name",
-        message: "Input name of the new package"
+        message: "Input name of the new package",
+        validate: (input, answers) => {
+          if (ProjectConfig.getAllPackages(null).find((packageName) => packageName === input)) {
+             return `Package with name ${input} already exists`;
+          } else return true;
+        }
       },
       {
         type: "list",
@@ -263,6 +268,10 @@ hello world from ./src/hello.ts!
     indexOfPackage: number
   ) {
     const packageConfig = ProjectConfig.getSFDXPackageManifest(projectDirectory);
+    packageConfig.packageDirectories.forEach((dir) => {
+      if (dir.package === nameOfPackage)
+        throw new Error(`Package with name ${nameOfPackage} already exists`);
+    });
     const newPackageDescriptor = {
       path: pathOfPackage,
       package: nameOfPackage,
