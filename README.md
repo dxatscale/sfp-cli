@@ -19,7 +19,7 @@ $ npm install -g @dxatscale/sfp-cli
 $ sfp COMMAND
 running command...
 $ sfp (-v|--version|version)
-@dxatscale/sfp-cli/0.0.0 darwin-x64 node-v12.16.0
+@dxatscale/sfp-cli/0.0.1 darwin-x64 node-v12.16.0
 $ sfp --help [COMMAND]
 USAGE
   $ sfp COMMAND
@@ -30,6 +30,7 @@ USAGE
 <!-- commands -->
 * [`sfp help [COMMAND]`](#sfp-help-command)
 * [`sfp pull`](#sfp-pull)
+* [`sfp update [CHANNEL]`](#sfp-update-channel)
 
 ## `sfp help [COMMAND]`
 
@@ -65,5 +66,19 @@ EXAMPLE
   $ sfp pull -u <scratchorg>
 ```
 
-_See code: [src/commands/pull.ts](https://github.com/dxatscale/sfp-cli/blob/v0.0.0/src/commands/pull.ts)_
+_See code: [src/commands/pull.ts](https://github.com/dxatscale/sfp-cli/blob/v0.0.1/src/commands/pull.ts)_
+
+## `sfp update [CHANNEL]`
+
+update the sfp CLI
+
+```
+USAGE
+  $ sfp update [CHANNEL]
+
+OPTIONS
+  --from-local  interactively choose an already installed version
+```
+
+_See code: [@oclif/plugin-update](https://github.com/oclif/plugin-update/blob/v1.5.0/src/commands/update.ts)_
 <!-- commandsstop -->

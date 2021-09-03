@@ -32,12 +32,15 @@ export default class Pull extends Command {
     if (!fs.existsSync("sfdx-project.json")) throw new Error("This command must be run in the root directory of a SFDX project");
 
     const statusResult = this.getStatusResult(flags.targetusername, flags.forceoverwrite);
-    const remoteAdditions = statusResult.filter((elem) => elem.state === "Remote Add");
 
-    if (remoteAdditions.length === 0) {
+    if (statusResult.length === 0) {
       console.log("No changes found");
       return;
     }
+
+    const remoteAdditions = statusResult.filter((elem) => elem.state === "Remote Add");
+
+
 
     console.log(`Found ${remoteAdditions.length} new metadata components, which require a new home`);
     const defaultPackage = ProjectConfig.getDefaultSFDXPackageDescriptor(null);
