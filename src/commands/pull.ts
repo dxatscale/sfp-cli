@@ -28,6 +28,7 @@ export default class Pull extends Command {
   async run() {
     const {args, flags} = this.parse(Pull);
 
+
     // TODO: Move to property requiresProject: boolean
     if (!fs.existsSync("sfdx-project.json")) throw new Error("This command must be run in the root directory of a SFDX project");
 
@@ -81,26 +82,33 @@ export default class Pull extends Command {
       result.push(obj);
     }
 
+
+    console.log();
     console.log('Pulling source components...');
-    child_process.execSync(
-      `sfdx force:source:pull -u ${flags.targetusername} -f`,
+    let pullResult = JSON.parse(child_process.execSync(
+      `sfdx force:source:pull -u ${flags.targetusername} -f --json`,
       {
         encoding: 'utf8',
         stdio: 'pipe',
         maxBuffer: 1024*1024*5
       }
-    );
+    )).result;
+
+
+    console.log()
     console.log('Successfully pulled source components');
 
-
+    console.log()
     console.log("Moving source components...")
-    const componentsFromDefaultPackage =  new MetadataResolver().getComponentsFromPath(defaultPackage.path);
+
 
     for (let elem of result) {
-      let component = componentsFromDefaultPackage.find((component) => component.name === elem.fullName && component.type.name === elem.type);
+      let components = pullResult.pulledSource.filter((component) => component.fullName === elem.fullName && component.type === elem.type);
+
 
       const converter = new MetadataConverter();
-      const components = ComponentSet.fromSource(component.xml);
+      const componentSet = ComponentSet.fromSource(components.find((component) => path.extname(component.filePath)===".xml").filePath);
+
 
       for(let dest of elem.destination) {
         if (dest.aliasfy) {
@@ -111,28 +119,28 @@ export default class Pull extends Command {
           });
 
           for (let alias of aliases) {
-            await converter.convert(components, 'source', {
+            await converter.convert(componentSet, 'source', {
               type: 'merge',
               mergeWith: ComponentSet.fromSource(path.resolve(dest.package, alias)).getSourceComponents(),
               defaultDirectory: path.join(dest.package, alias),
-              forceIgnoredPaths: components.forceIgnoredPaths ?? new Set<string>()
+              forceIgnoredPaths: componentSet.forceIgnoredPaths ?? new Set<string>()
             });
           }
         } else {
-          await converter.convert(components, 'source', {
+          await converter.convert(componentSet, 'source', {
             type: 'merge',
             mergeWith: ComponentSet.fromSource(path.resolve(dest.package)).getSourceComponents(),
             defaultDirectory: dest.package,
-            forceIgnoredPaths: components.forceIgnoredPaths ?? new Set<string>()
+            forceIgnoredPaths: componentSet.forceIgnoredPaths ?? new Set<string>()
           });
         }
       }
 
-
-      fs.unlinkSync(component.xml);
-      if (component.content) {
-        fs.unlinkSync(component.content);
+      for(let component of components)
+      {
+        fs.unlinkSync(component.filePath);
       }
+
     }
 
     console.log("Successfully moved source components");
