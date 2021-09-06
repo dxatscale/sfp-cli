@@ -4,9 +4,9 @@ sfp-cli
 PRE-ALPHA Developer CLI for Salesforce programs following the DX@Scale model
 
 [![oclif](https://img.shields.io/badge/cli-oclif-brightgreen.svg)](https://oclif.io)
-[![Version](https://img.shields.io/npm/v/sfp-cli.svg)](https://npmjs.org/package/sfp-cli)
-[![Downloads/week](https://img.shields.io/npm/dw/sfp-cli.svg)](https://npmjs.org/package/sfp-cli)
-[![License](https://img.shields.io/npm/l/sfp-cli.svg)](https://github.com/dxatscale/sfp-cli/blob/master/package.json)
+[![Version](https://img.shields.io/npm/v/@dxatscale/sfp-cli.svg)](https://npmjs.org/package/@dxatscale/sfp-cli)
+[![Downloads/week](https://img.shields.io/npm/dw/@dxatscale/sfp-cli.svg)](https://npmjs.org/package/@dxatscale/sfp-cli)
+[![License](https://img.shields.io/npm/l/@dxatscale/sfp-cli.svg)](https://github.com/dxatscale/sfp-cli/blob/master/package.json)
 
 <!-- toc -->
 * [Usage](#usage)
