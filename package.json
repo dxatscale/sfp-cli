@@ -1,7 +1,7 @@
 {
   "name": "@dxatscale/sfp-cli",
   "description": "[PRE-ALPHA] Developer CLI for Salesforce programs following the DX@Scale model",
-  "version": "0.0.7",
+  "version": "0.0.8",
   "author": "dxatscale",
   "bin": {
     "sfp": "./bin/run"
@@ -77,7 +77,7 @@
       "@oclif/plugin-update"
     ],
     "warn-if-update-available": {
-      "timeoutInDays": 7,
+      "timeoutInDays": 0,
       "message": "<%= config.name %> update available from <%= chalk.greenBright(config.version) %> to <%= chalk.greenBright(latest) %>."
     }
   },
