@@ -109,7 +109,7 @@ export default class Workon extends Command {
     }
 
 
-    let branchName = `${this.workItem.type}/${this.workItem.id}`;
+    let branchName = `${this.workItem.type}/${this.workItem.id.toUpperCase()}`;
 
     //Switch Git
     cli.action.start(` Sync Git Repository...`);
