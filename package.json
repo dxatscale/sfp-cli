@@ -1,7 +1,7 @@
 {
   "name": "@dxatscale/sfp-cli",
   "description": "[PRE-ALPHA] Developer CLI for Salesforce programs following the DX@Scale model",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "author": "dxatscale",
   "bin": {
     "sfp": "./bin/run"
@@ -59,6 +59,18 @@
   "oclif": {
     "commands": "./lib/commands",
     "bin": "sfp",
+    "update": {
+      "s3": {
+        "host": "https://dxatscalesfp.blob.core.windows.net/sfpplugins",
+        "templates": {
+          "target": {
+            "unversioned": "<%- bin %>-<%- platform %>-<%- arch %><%- ext %>",
+            "versioned": "<%- bin %>-v<%- version %>-<%- platform %>-<%- arch %><%- ext %>",
+            "manifest": "<%- platform %>-<%- arch %>"
+          }
+        }
+      }
+    },
     "plugins": [
       "@oclif/plugin-help",
       "@oclif/plugin-warn-if-update-available",
