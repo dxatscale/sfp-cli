@@ -19,7 +19,7 @@ $ npm install -g @dxatscale/sfp-cli
 $ sfp COMMAND
 running command...
 $ sfp (-v|--version|version)
-@dxatscale/sfp-cli/0.0.1 darwin-x64 node-v12.16.0
+@dxatscale/sfp-cli/0.0.10 darwin-x64 node-v14.16.1
 $ sfp --help [COMMAND]
 USAGE
   $ sfp COMMAND
@@ -29,8 +29,10 @@ USAGE
 # Commands
 <!-- commands -->
 * [`sfp help [COMMAND]`](#sfp-help-command)
+* [`sfp init [CALLER] [MODE]`](#sfp-init-caller-mode)
 * [`sfp pull`](#sfp-pull)
 * [`sfp update [CHANNEL]`](#sfp-update-channel)
+* [`sfp workitem [FILE]`](#sfp-workitem-file)
 
 ## `sfp help [COMMAND]`
 
@@ -49,9 +51,23 @@ OPTIONS
 
 _See code: [@oclif/plugin-help](https://github.com/oclif/plugin-help/blob/v3.2.3/src/commands/help.ts)_
 
+## `sfp init [CALLER] [MODE]`
+
+describe the command here
+
+```
+USAGE
+  $ sfp init [CALLER] [MODE]
+
+OPTIONS
+  -h, --help  show CLI help
+```
+
+_See code: [src/commands/init.ts](https://github.com/dxatscale/sfp-cli/blob/v0.0.10/src/commands/init.ts)_
+
 ## `sfp pull`
 
-Pull source from scratch org to the project. Provides interactive interface for packaging new metadata.
+pull source from scratch org/sandbox to the project. Provides interactive interface for packaging new metadata.
 
 ```
 USAGE
@@ -66,7 +82,7 @@ EXAMPLE
   $ sfp pull -u <scratchorg>
 ```
 
-_See code: [src/commands/pull.ts](https://github.com/dxatscale/sfp-cli/blob/v0.0.1/src/commands/pull.ts)_
+_See code: [src/commands/pull.ts](https://github.com/dxatscale/sfp-cli/blob/v0.0.10/src/commands/pull.ts)_
 
 ## `sfp update [CHANNEL]`
 
@@ -81,4 +97,18 @@ OPTIONS
 ```
 
 _See code: [@oclif/plugin-update](https://github.com/oclif/plugin-update/blob/v1.5.0/src/commands/update.ts)_
+
+## `sfp workitem [FILE]`
+
+Command to help with a workitem
+
+```
+USAGE
+  $ sfp workitem [FILE]
+
+OPTIONS
+  -h, --help  show CLI help
+```
+
+_See code: [src/commands/workitem.ts](https://github.com/dxatscale/sfp-cli/blob/v0.0.10/src/commands/workitem.ts)_
 <!-- commandsstop -->
