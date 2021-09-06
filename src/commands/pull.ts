@@ -1,5 +1,5 @@
 import {Command, flags} from '@oclif/command'
-import {ComponentSet, MetadataConverter, MetadataResolver} from '@salesforce/source-deploy-retrieve';
+import {ComponentSet, MetadataConverter} from '@salesforce/source-deploy-retrieve';
 import path = require('path');
 import * as fs from "fs-extra";
 import child_process = require("child_process");
@@ -9,9 +9,12 @@ import ProjectConfig from "@dxatscale/sfpowerscripts.core/lib/project/ProjectCon
 const fuzzy = require("fuzzy");
 import * as resource from "../resource.json";
 const Table = require("cli-table");
+import SFPlogger, {
+  COLOR_HEADER
+} from "@dxatscale/sfpowerscripts.core/lib/logger/SFPLogger";
 
 export default class Pull extends Command {
-  static description = 'Pull source from scratch org to the project. Provides interactive interface for packaging new metadata.'
+  static description = 'pull source from scratch org/sandbox to the project. Provides interactive interface for packaging new metadata.'
 
   static examples = [
     `$ sfp pull -u <scratchorg>`
@@ -29,8 +32,16 @@ export default class Pull extends Command {
     const {args, flags} = this.parse(Pull);
 
 
-    // TODO: Move to property requiresProject: boolean
-    if (!fs.existsSync("sfdx-project.json")) throw new Error("This command must be run in the root directory of a SFDX project");
+
+    SFPlogger.log(
+      COLOR_HEADER(`sfp cli -- The DX@Scale Dev CLI -- ${this.config.version}`)
+    );
+
+   // TODO: Move to property requiresProject: boolean
+   if (!fs.existsSync("sfdx-project.json")) throw new Error("This command must be run in the root directory of a SFDX project");
+
+
+
 
     const statusResult = this.getStatusResult(flags.targetusername, flags.forceoverwrite);
 
