@@ -1,4 +1,4 @@
-import {Command, flags} from '@oclif/command'
+import {flags} from '@oclif/command'
 import inquirer = require("inquirer");
 inquirer.registerPrompt(
   "autocomplete",
@@ -15,9 +15,9 @@ import PoolListImpl from '../impl/pool/PoolListImpl';
 import { isEmpty } from "lodash";
 import ScratchOrg from '@dxatscale/sfpowerscripts.core/lib/scratchorg/ScratchOrg';
 import path = require("path");
+import SfpCommand from '../SfpCommand';
 
-
-export default class Init extends Command {
+export default class Init extends SfpCommand {
   static description = 'describe the command here'
 
   static flags = {
@@ -29,7 +29,6 @@ export default class Init extends Command {
   sfpProjectConfig;
 
   async run() {
-    const {args, flags} = this.parse(Init)
 
 
 
@@ -41,12 +40,6 @@ export default class Init extends Command {
       console.log(COLOR_WARNING(`Project not initialized yet, Initializing...`));
     }
 
-
-
-  if(args.caller!=='inner')
-    SFPlogger.log(
-      COLOR_HEADER(`sfp cli -- The DX@Scale Dev CLI -- ${this.config.version}`)
-    );
 
 
     if (!fs.existsSync("sfdx-project.json"))

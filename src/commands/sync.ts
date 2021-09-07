@@ -1,9 +1,10 @@
-import {Command, flags} from '@oclif/command'
+import {flags} from '@oclif/command'
 import inquirer = require('inquirer')
 import SFPLogger, { COLOR_HEADER } from "@dxatscale/sfpowerscripts.core/lib/logger/SFPLogger";
 import Pull from './pull';
+import SfpCommand from '../SfpCommand';
 
-export default class Sync extends Command {
+export default class Sync extends SfpCommand {
   static description = 'sync changes effortlessly either with repository or development environment'
 
   static flags = {
@@ -13,12 +14,7 @@ export default class Sync extends Command {
   static args = [{name: 'file'}]
 
   async run() {
-    const {args, flags} = this.parse(Sync)
 
-
-    SFPLogger.log(
-      COLOR_HEADER(`sfp cli -- The DX@Scale Dev CLI -- ${this.config.version}`)
-    );
 
     let option = await this.promptAndCaptureOption();
 

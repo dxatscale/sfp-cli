@@ -1,9 +1,6 @@
-import { Command, flags } from "@oclif/command";
-import {
-  ComponentSet,
-  MetadataConverter,
-} from "@salesforce/source-deploy-retrieve";
-import path = require("path");
+import {flags} from '@oclif/command'
+import {ComponentSet, MetadataConverter} from '@salesforce/source-deploy-retrieve';
+import path = require('path');
 import * as fs from "fs-extra";
 import child_process = require("child_process");
 import inquirer = require("inquirer");
@@ -17,10 +14,11 @@ import SFPlogger, {
 import PromptToPickAnOrg from "../prompts/PromptToPickAnOrg";
 import PackagePrompt from "../prompts/PackagePrompt";
 import simpleGit, { SimpleGit } from "simple-git";
+import SfpCommand from '../SfpCommand';
 
-export default class Pull extends Command {
-  static description =
-    "pull source from scratch org/sandbox to the project. Provides interactive interface for packaging new metadata.";
+
+export default class Pull extends SfpCommand {
+  static description = 'pull source from scratch org/sandbox to the project. Provides interactive interface for packaging new metadata.'
 
   static examples = [`$ sfp pull -u <scratchorg>`];
 
@@ -34,17 +32,6 @@ export default class Pull extends Command {
   static hidden = true;
 
   async run() {
-    const { args, flags } = this.parse(Pull);
-
-    if (args.caller !== "inner") {
-      SFPlogger.log(
-        COLOR_HEADER(
-          `sfp cli -- The DX@Scale Dev CLI -- ${this.config.version}`
-        )
-      );
-    }
-
-
 
     // TODO: Move to property requiresProject: boolean
     if (!fs.existsSync("sfdx-project.json"))
