@@ -74,7 +74,7 @@ export default class Init extends Command {
        }
 
      }
-     let devHubUserName = await new PromptToPickAnOrg(this.sfpProjectConfig.defaultDevHub).promptForDevHubSelection();
+     let devHubUserName = await new PromptToPickAnOrg({username:this.sfpProjectConfig.defaultDevHub}).promptForDevHubSelection();
 
      const hubOrg = await Org.create({ aliasOrUsername: devHubUserName });
      let scratchOrgsInDevHub = await new PoolListImpl(
