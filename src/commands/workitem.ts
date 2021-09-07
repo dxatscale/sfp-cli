@@ -4,7 +4,7 @@ import Workon from './workon'
 import SFPLogger, { COLOR_HEADER } from "@dxatscale/sfpowerscripts.core/lib/logger/SFPLogger";
 
 export default class WorkItem extends Command {
-  static description = 'Command to help with a workitem'
+  static description = 'create/switch/submit a workitem'
 
   static flags = {
     help: flags.help({char: 'h'})
@@ -20,7 +20,7 @@ export default class WorkItem extends Command {
       COLOR_HEADER(`sfp cli -- The DX@Scale Dev CLI -- ${this.config.version}`)
     );
 
-    let topic = await this.promptAndCaptureWorkItem();
+    let topic = await this.promptAndCaptureOption();
 
     if(topic === 'start')
     {
@@ -42,21 +42,21 @@ export default class WorkItem extends Command {
   }
 
 
-  private async promptAndCaptureWorkItem(): Promise<string> {
-    const workItem = await inquirer.prompt([
+  private async promptAndCaptureOption(): Promise<string> {
+    const optionPrompt = await inquirer.prompt([
       {
         type: "list",
-        name: "topic",
+        name: "option",
         message: "Select an option to proceed?",
         choices: [
-          { name: "Work on a new item ", value: "start" },
-          { name: "Switch to an existing work item", value: "existing" },
-          { name: "Submit a work item", value: "existing" },
+          "Work on a new item ",
+          "Switch to an existing work item",
+          "Submit a work item"
         ],
-        default: { name: "feat: A new feature", value: "feat" },
+        default: "Work on a new item "
       },
     ]);
 
-    return workItem.topic
+    return optionPrompt.option;
   }
 }
