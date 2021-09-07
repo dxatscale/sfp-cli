@@ -19,7 +19,7 @@ $ npm install -g @dxatscale/sfp-cli
 $ sfp COMMAND
 running command...
 $ sfp (-v|--version|version)
-@dxatscale/sfp-cli/0.0.11 darwin-x64 node-v14.16.1
+@dxatscale/sfp-cli/0.0.12 darwin-x64 node-v14.16.1
 $ sfp --help [COMMAND]
 USAGE
   $ sfp COMMAND
@@ -63,7 +63,7 @@ OPTIONS
   -h, --help  show CLI help
 ```
 
-_See code: [src/commands/init.ts](https://github.com/dxatscale/sfp-cli/blob/v0.0.11/src/commands/init.ts)_
+_See code: [src/commands/init.ts](https://github.com/dxatscale/sfp-cli/blob/v0.0.12/src/commands/init.ts)_
 
 ## `sfp sync [FILE]`
 
@@ -77,7 +77,7 @@ OPTIONS
   -h, --help  show CLI help
 ```
 
-_See code: [src/commands/sync.ts](https://github.com/dxatscale/sfp-cli/blob/v0.0.11/src/commands/sync.ts)_
+_See code: [src/commands/sync.ts](https://github.com/dxatscale/sfp-cli/blob/v0.0.12/src/commands/sync.ts)_
 
 ## `sfp update [CHANNEL]`
 
@@ -105,5 +105,5 @@ OPTIONS
   -h, --help  show CLI help
 ```
 
-_See code: [src/commands/workitem.ts](https://github.com/dxatscale/sfp-cli/blob/v0.0.11/src/commands/workitem.ts)_
+_See code: [src/commands/workitem.ts](https://github.com/dxatscale/sfp-cli/blob/v0.0.12/src/commands/workitem.ts)_
 <!-- commandsstop -->
