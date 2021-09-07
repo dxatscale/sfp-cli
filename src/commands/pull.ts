@@ -1,4 +1,4 @@
-import {Command, flags} from '@oclif/command'
+import {flags} from '@oclif/command'
 import {ComponentSet, MetadataConverter} from '@salesforce/source-deploy-retrieve';
 import path = require('path');
 import * as fs from "fs-extra";
@@ -12,8 +12,9 @@ const Table = require("cli-table");
 import SFPlogger, {
   COLOR_HEADER
 } from "@dxatscale/sfpowerscripts.core/lib/logger/SFPLogger";
+import SfpCommand from "../SfpCommand";
 
-export default class Pull extends Command {
+export default class Pull extends SfpCommand {
   static description = 'pull source from scratch org/sandbox to the project. Provides interactive interface for packaging new metadata.'
 
   static examples = [
@@ -31,9 +32,6 @@ export default class Pull extends Command {
   static hidden = true;
 
   async run() {
-    const {args, flags} = this.parse(Pull);
-
-
 
     SFPlogger.log(
       COLOR_HEADER(`sfp cli -- The DX@Scale Dev CLI -- ${this.config.version}`)
@@ -45,7 +43,7 @@ export default class Pull extends Command {
 
 
 
-    const statusResult = this.getStatusResult(flags.targetusername, flags.forceoverwrite);
+    const statusResult = this.getStatusResult(this.flags.targetusername, this.flags.forceoverwrite);
 
     if (statusResult.length === 0) {
       console.log("No changes found");
@@ -99,7 +97,7 @@ export default class Pull extends Command {
     console.log();
     console.log('Pulling source components...');
     let pullResult = JSON.parse(child_process.execSync(
-      `sfdx force:source:pull -u ${flags.targetusername} -f --json`,
+      `sfdx force:source:pull -u ${this.flags.targetusername} -f --json`,
       {
         encoding: 'utf8',
         stdio: 'pipe',
