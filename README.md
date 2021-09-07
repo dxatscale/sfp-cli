@@ -30,7 +30,7 @@ USAGE
 <!-- commands -->
 * [`sfp help [COMMAND]`](#sfp-help-command)
 * [`sfp init [CALLER] [MODE]`](#sfp-init-caller-mode)
-* [`sfp pull`](#sfp-pull)
+* [`sfp sync [FILE]`](#sfp-sync-file)
 * [`sfp update [CHANNEL]`](#sfp-update-channel)
 * [`sfp workitem [FILE]`](#sfp-workitem-file)
 
@@ -65,24 +65,19 @@ OPTIONS
 
 _See code: [src/commands/init.ts](https://github.com/dxatscale/sfp-cli/blob/v0.0.11/src/commands/init.ts)_
 
-## `sfp pull`
+## `sfp sync [FILE]`
 
-pull source from scratch org/sandbox to the project. Provides interactive interface for packaging new metadata.
+sync changes effortlessly either with repository or development environment
 
 ```
 USAGE
-  $ sfp pull
+  $ sfp sync [FILE]
 
 OPTIONS
-  -f, --forceoverwrite                 ignore conflict warnings and overwrite changes to the project
-  -h, --help                           show CLI help
-  -u, --targetusername=targetusername  username or alias for the target org
-
-EXAMPLE
-  $ sfp pull -u <scratchorg>
+  -h, --help  show CLI help
 ```
 
-_See code: [src/commands/pull.ts](https://github.com/dxatscale/sfp-cli/blob/v0.0.11/src/commands/pull.ts)_
+_See code: [src/commands/sync.ts](https://github.com/dxatscale/sfp-cli/blob/v0.0.11/src/commands/sync.ts)_
 
 ## `sfp update [CHANNEL]`
 
@@ -100,7 +95,7 @@ _See code: [@oclif/plugin-update](https://github.com/oclif/plugin-update/blob/v1
 
 ## `sfp workitem [FILE]`
 
-Command to help with a workitem
+create/switch/submit a workitem
 
 ```
 USAGE

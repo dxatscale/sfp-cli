@@ -28,6 +28,8 @@ export default class Pull extends Command {
 
   // private readonly registry: MetadataRegistry = defaultRegistry;
 
+  static hidden = true;
+
   async run() {
     const {args, flags} = this.parse(Pull);
 
