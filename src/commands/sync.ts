@@ -1,6 +1,7 @@
 import {Command, flags} from '@oclif/command'
 import inquirer = require('inquirer')
 import SFPLogger, { COLOR_HEADER } from "@dxatscale/sfpowerscripts.core/lib/logger/SFPLogger";
+import Pull from './pull';
 
 export default class Sync extends Command {
   static description = 'sync changes effortlessly either with repository or development environment'
@@ -25,14 +26,15 @@ export default class Sync extends Command {
     {
       let args=new Array<string>();
       args.push("inner");
-      args.push("start");
+
 
     }
     else if(option === 'Sync local with Dev Org')
     {
       let args=new Array<string>();
       args.push("inner");
-      args.push("existing");
+      let pull:Pull= new Pull(args,this.config);
+      await pull.run();
 
     }
 
