@@ -17,6 +17,7 @@ import * as resource from "../resource.json";
 const Table = require("cli-table");
 import SFPlogger, {
   COLOR_HEADER,
+  LoggerLevel
 } from "@dxatscale/sfpowerscripts.core/lib/logger/SFPLogger";
 import PromptToPickAnOrg from "../prompts/PromptToPickAnOrg";
 import simpleGit, { SimpleGit } from "simple-git";
@@ -67,9 +68,8 @@ export default class Pull extends Command {
     let scratchOrgUserName = await new PromptToPickAnOrg({alias:aliasName}).promptForScratchOrgSelection();
 
 
-    const statusResult = this.getStatusResult(
-      scratchOrgUserName,
-      false
+    const statusResult = await this.getStatusResult(
+      scratchOrgUserName
     );
 
     if (statusResult.length === 0) {
@@ -394,14 +394,14 @@ export default class Pull extends Command {
     } else return packages;
   }
 
-  private getStatusResult(targetOrg: string, isForceOverwrite: boolean) {
+  private async getStatusResult(targetOrg: string) {
     let statusResult;
     let resultJson = child_process.execSync(
       `sfdx force:source:status -u ${targetOrg} --json`,
       {
         encoding: "utf8",
         stdio: "pipe",
-        maxBuffer: 1024 * 1024 * 5,
+        maxBuffer: 1024 * 1024 * 5
       }
     );
 
@@ -411,20 +411,40 @@ export default class Pull extends Command {
       elem.state.endsWith("(Conflict)")
     );
 
-    if (conflicts.length > 0 && !isForceOverwrite) {
-      this.printStatus(conflicts);
-      throw new Error(
-        "Source conflict(s) detected. Verify that you want to keep the remote versions, then run 'sfp pull -f' with the --forceoverwrite (-f) option"
-      );
-    } else {
-      statusResult = result.result.filter(
-        (elem) =>
-          !elem.state.endsWith("(Conflict)") && !elem.state.startsWith("Local")
-      );
-      this.printStatus(statusResult);
+    if (conflicts.length > 0) {
+      await this.conflictsHandler(conflicts);
     }
 
+    statusResult = result.result.filter(
+      (elem) =>
+        !elem.state.startsWith("Local")
+    ).map((elem) => {
+      elem.state = elem.state.replace(/\(Conflict\)$/, "");
+      return elem;
+    })
+
+    this.printStatus(statusResult);
+
+
     return statusResult;
+  }
+
+  private async conflictsHandler(conflicts: any) {
+    this.printStatus(conflicts);
+    SFPlogger.log("Source conflict(s) detected. Verify that you want to keep the remote versions", LoggerLevel.WARN);
+    const getConfirmationForOverwrite = await inquirer.prompt([
+      {
+        type: "input",
+        name: "overwrite",
+        message: "To forcibly overwrite local changes, type force"
+      }
+    ]);
+
+    if (getConfirmationForOverwrite.overwrite !== "force") {
+      throw new Error(
+        "Source conflict(s) detected. Abandoning..."
+      );
+    }
   }
 
   private printStatus(statusResult) {
