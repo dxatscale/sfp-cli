@@ -1,4 +1,9 @@
 import inquirer = require("inquirer");
+inquirer.registerPrompt(
+  "autocomplete",
+  require("inquirer-autocomplete-prompt")
+);
+
 const fuzzy = require("fuzzy");
 const path = require("path");
 
@@ -78,30 +83,22 @@ export default class PackagePrompt {
         type: "autocomplete",
         name: "name",
         message: "Search for package",
-        source: this.searchExistingPackages,
-        pageSize: 10,
+        source: (answers, input) => {
+          let packages = this.getNameOfPackages();
+
+          const defaultPackage =
+            this.getDefaultSfdxPackageDescriptor().package;
+          packages = packages.filter((packageName) => packageName !== defaultPackage);
+
+          if (input) {
+            return fuzzy.filter(input, packages).map((elem) => elem.string);
+          } else return packages;
+        },
+        pageSize: 10
       },
     ]);
 
     return this.getSfdxPackageDescriptor(existingPackage.name);
-  }
-
-  /**
-   * Fuzzy search for existing packages in the sfdx-project.json
-   * @param answers
-   * @param input
-   * @returns
-   */
-   private searchExistingPackages(answers, input) {
-    let packages = this.getNameOfPackages();
-
-    const defaultPackage =
-      this.getDefaultSfdxPackageDescriptor().package;
-    packages = packages.filter((packageName) => packageName !== defaultPackage);
-
-    if (input) {
-      return fuzzy.filter(input, packages).map((elem) => elem.string);
-    } else return packages;
   }
 
   private getNameOfPackages(): string[] {
@@ -112,11 +109,11 @@ export default class PackagePrompt {
     return nameOfPackages;
   }
 
-  public getDefaultSfdxPackageDescriptor() {
+  private getDefaultSfdxPackageDescriptor() {
     return this.projectConfig.packageDirectories.find((pkg) => pkg.default);
   }
 
-   public getSfdxPackageDescriptor(packageName: string) {
+  private getSfdxPackageDescriptor(packageName: string) {
     return this.projectConfig.packageDirectories.find((pkg) => pkg.package === packageName);
   }
 }

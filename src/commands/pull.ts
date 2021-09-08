@@ -7,10 +7,6 @@ import path = require("path");
 import * as fs from "fs-extra";
 import child_process = require("child_process");
 import inquirer = require("inquirer");
-inquirer.registerPrompt(
-  "autocomplete",
-  require("inquirer-autocomplete-prompt")
-);
 import ProjectConfig from "@dxatscale/sfpowerscripts.core/lib/project/ProjectConfig";
 import * as resource from "../resource.json";
 const Table = require("cli-table");
