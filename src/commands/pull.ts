@@ -12,7 +12,6 @@ inquirer.registerPrompt(
   require("inquirer-autocomplete-prompt")
 );
 import ProjectConfig from "@dxatscale/sfpowerscripts.core/lib/project/ProjectConfig";
-const fuzzy = require("fuzzy");
 import * as resource from "../resource.json";
 const Table = require("cli-table");
 import SFPlogger, {
@@ -20,6 +19,7 @@ import SFPlogger, {
   LoggerLevel
 } from "@dxatscale/sfpowerscripts.core/lib/logger/SFPLogger";
 import PromptToPickAnOrg from "../prompts/PromptToPickAnOrg";
+import PackagePrompt from "../prompts/PackagePrompt";
 import simpleGit, { SimpleGit } from "simple-git";
 
 export default class Pull extends Command {
@@ -84,49 +84,80 @@ export default class Pull extends Command {
     console.log(
       `Found ${remoteAdditions.length} new metadata components, which require a new home`
     );
-    const defaultPackage = ProjectConfig.getDefaultSFDXPackageDescriptor(null);
 
-    let result = [];
+    const projectConfig = ProjectConfig.getSFDXPackageManifest(null);
+    const newPackagesDirectories: string[] = [];
+
+    let mergePlan: Instruction[] = [];
     for (let remoteAddition of remoteAdditions) {
       console.log();
-      const obj: Instruction = {
+      const instruction: Instruction = {
         fullName: remoteAddition.fullName,
         type: remoteAddition.type,
         destination: [],
       };
 
-      let getMoveAction = await this.getMoveAction(obj);
+      let moveAction = await this.getMoveAction(instruction);
 
-      if (getMoveAction.moveAction === MoveAction.RECOMMENDED) {
-        if (resource.types[obj.type].strategy === Strategy.PLUS_ONE) {
-          obj.destination.push(...resource.types[obj.type].recommended);
-          await this.getPlusOneMoveAction(obj);
-        } else if (resource.types[obj.type].strategy === Strategy.DUPLICATE) {
-          obj.destination.push(...resource.types[obj.type].recommended);
-        } else if (resource.types[obj.type].strategy === Strategy.SINGLE) {
-          await this.getSingleMoveAction(
-            obj,
-            resource.types[obj.type].recommended
+      if (moveAction === MoveAction.RECOMMENDED) {
+        if (resource.types[instruction.type].strategy === Strategy.PLUS_ONE) {
+          instruction.destination.push(...resource.types[instruction.type].recommended);
+
+          const plusOneMoveAction = await this.getPlusOneMoveAction();
+          if (plusOneMoveAction === MoveAction.EXISTING) {
+            let existingPackage = await new PackagePrompt(projectConfig).promptForExistingPackage();
+            instruction.destination.push({package: existingPackage.path});
+
+          } else if (plusOneMoveAction === MoveAction.NEW) {
+            const newPackage = await new PackagePrompt(projectConfig).promptForNewPackage();
+            this.addNewPackageToProjectConfig(newPackage.descriptor, newPackage.indexOfPackage, projectConfig);
+            newPackagesDirectories.push(newPackage.descriptor.path);
+            instruction.destination.push({ package: newPackage.descriptor.path });
+
+          } else {
+            throw new Error(`Unrecognised MoveAction ${moveAction}`);
+          }
+
+        } else if (resource.types[instruction.type].strategy === Strategy.DUPLICATE) {
+          instruction.destination.push(...resource.types[instruction.type].recommended);
+
+        } else if (resource.types[instruction.type].strategy === Strategy.SINGLE) {
+          const singleRecommendedPackage = await this.getSingleRecommendedPackage(
+            resource.types[instruction.type].recommended
           );
-        } else if (resource.types[obj.type].strategy === Strategy.DELETE) {
+          instruction.destination.push(
+            resource.types[instruction.type].recommended.find((elem) => elem.package === singleRecommendedPackage)
+          );
+
+        } else if (resource.types[instruction.type].strategy === Strategy.DELETE) {
           // do nothing
         } else {
           throw new Error("Strategy not defined or unknown");
         }
-      } else if (getMoveAction.moveAction === MoveAction.NEW) {
-        await this.getNewpackage(obj);
-      } else if (getMoveAction.moveAction === MoveAction.EXISTING) {
-        await this.getExistingPackage(obj);
-      } else if (getMoveAction.moveAction === MoveAction.NOTHING) {
+
+      } else if (moveAction === MoveAction.NEW) {
+        const newPackage = await new PackagePrompt(projectConfig).promptForNewPackage();
+        this.addNewPackageToProjectConfig(newPackage.descriptor, newPackage.indexOfPackage, projectConfig);
+        newPackagesDirectories.push(newPackage.descriptor.path);
+        instruction.destination.push({ package: newPackage.descriptor.path });
+
+      } else if (moveAction === MoveAction.EXISTING) {
+        let existingPackage = await new PackagePrompt(projectConfig).promptForExistingPackage();
+        instruction.destination.push({package: existingPackage.path});
+
+      } else if (moveAction === MoveAction.NOTHING) {
         continue;
+
       } else {
-        throw new Error(`Unrecognised MoveAction ${getMoveAction.moveAction}`);
+        throw new Error(`Unrecognised MoveAction ${moveAction}`);
       }
-      result.push(obj);
+      mergePlan.push(instruction);
     }
 
-    console.log();
-    console.log("Pulling source components...");
+    newPackagesDirectories.forEach((dir) => fs.mkdirpSync(dir));
+    this.writeProjectConfigToFile(projectConfig);
+
+    console.log("\nPulling source components...");
     let pullResult = JSON.parse(
       child_process.execSync(
         `sfdx force:source:pull -u ${scratchOrgUserName} -f --json`,
@@ -137,17 +168,14 @@ export default class Pull extends Command {
         }
       )
     ).result;
-
-    console.log();
     console.log("Successfully pulled source components");
 
-    console.log();
-    console.log("Moving source components...");
+    console.log("\nMoving source components...");
 
-    for (let elem of result) {
+    for (let instruction of mergePlan) {
       let components = pullResult.pulledSource.filter(
         (component) =>
-          component.fullName === elem.fullName && component.type === elem.type
+          component.fullName === instruction.fullName && component.type === instruction.type
       );
 
       const converter = new MetadataConverter();
@@ -157,7 +185,7 @@ export default class Pull extends Command {
         ).filePath
       );
 
-      for (let dest of elem.destination) {
+      for (let dest of instruction.destination) {
         if (dest.aliasfy) {
           let files = fs.readdirSync(dest.package);
           let aliases = files.filter((file) => {
@@ -197,158 +225,16 @@ export default class Pull extends Command {
     console.log("Successfully moved source components");
   }
 
-  private async getExistingPackage(obj: Instruction) {
-    let getExistingPackage = await inquirer.prompt([
-      {
-        type: "autocomplete",
-        name: "package",
-        message: "Search for package",
-        source: this.searchExistingPackages,
-        pageSize: 10,
-      },
-    ]);
 
-    let packageDescriptor = ProjectConfig.getSFDXPackageDescriptor(
-      null,
-      getExistingPackage.package
-    );
-    obj.destination.push({ package: packageDescriptor.path });
-  }
 
-  private async getNewpackage(obj: Instruction) {
-    const getNewPackage = await inquirer.prompt([
-      {
-        type: "input",
-        name: "name",
-        message: "Input name of the new package",
-        validate: (input, answers) => {
-          if (
-            ProjectConfig.getAllPackages(null).find(
-              (packageName) => packageName === input
-            )
-          ) {
-            return `Package with name ${input} already exists`;
-          } else return true;
-        },
-      },
-      {
-        type: "list",
-        name: "anchor",
-        message: `Select position of the new package`,
-        loop: false,
-        choices: ProjectConfig.getAllPackages(null),
-        pageSize: 10,
-      },
-      {
-        type: "list",
-        name: "position",
-        message: "Position",
-        choices: [
-          { name: "Before", value: "before" },
-          { name: "After", value: "after" },
-        ],
-      },
-    ]);
-
-    let indexOfNewPackage = ProjectConfig.getAllPackages(null).findIndex(
-      (packageName) => packageName === getNewPackage.anchor
-    );
-    if (getNewPackage.position === "after") indexOfNewPackage++;
-
-    Pull.createNewPackage(
-      null,
-      getNewPackage.name,
-      path.join("src", getNewPackage.name),
-      indexOfNewPackage
-    );
-
-    fs.mkdirpSync(path.join("src", getNewPackage.name));
-
-    obj.destination.push({ package: path.join("src", getNewPackage.name) });
-  }
-
-  private async getMoveAction(obj: Instruction) {
-    return await inquirer.prompt({
+  private async getMoveAction(instruction: Instruction) {
+    let moveAction = await inquirer.prompt({
       type: "list",
-      name: "moveAction",
-      message: `Select a package for ${obj.type} ${obj.fullName}`,
-      choices: this.getChoicesForMovingMetadata(obj),
+      name: "action",
+      message: `Select a package for ${instruction.type} ${instruction.fullName}`,
+      choices: this.getChoicesForMovingMetadata(instruction),
     });
-  }
-
-  private async getPlusOneMoveAction(obj: Instruction) {
-    let getMoveAction = await inquirer.prompt({
-      type: "list",
-      name: "moveAction",
-      message: `Select additional package`,
-      choices: [
-        { name: "Existing", value: MoveAction.EXISTING },
-        { name: "New", value: MoveAction.NEW },
-      ],
-    });
-
-    if (getMoveAction.moveAction === MoveAction.EXISTING) {
-      await this.getExistingPackage(obj);
-    } else if (getMoveAction.moveAction === MoveAction.NEW) {
-      await this.getNewpackage(obj);
-    } else {
-      throw new Error(`Unrecognised MoveAction ${getMoveAction.moveAction}`);
-    }
-  }
-
-  private async getSingleMoveAction(
-    obj: Instruction,
-    recommended: { package: string; aliasfy: boolean }[]
-  ) {
-    const getPackage = await inquirer.prompt({
-      type: "list",
-      name: "package",
-      message: "Select recommended package",
-      choices: recommended.map((elem) => elem.package),
-    });
-
-    obj.destination.push(
-      recommended.find((elem) => elem.package === getPackage.package)
-    );
-  }
-
-  /**
-   *
-   * @param projectDirectory
-   * @param nameOfPackage
-   * @param pathOfPackage
-   * @param indexOfPackage
-   */
-  public static createNewPackage(
-    projectDirectory: string,
-    nameOfPackage: string,
-    pathOfPackage: string,
-    indexOfPackage: number
-  ) {
-    const packageConfig =
-      ProjectConfig.getSFDXPackageManifest(projectDirectory);
-    packageConfig.packageDirectories.forEach((dir) => {
-      if (dir.package === nameOfPackage)
-        throw new Error(`Package with name ${nameOfPackage} already exists`);
-    });
-    const newPackageDescriptor = {
-      path: pathOfPackage,
-      package: nameOfPackage,
-      versionNumber: "1.0.0.0",
-    };
-    packageConfig.packageDirectories.splice(
-      indexOfPackage,
-      0,
-      newPackageDescriptor
-    );
-
-    let pathToProjectConfig: string;
-    if (projectDirectory) {
-      pathToProjectConfig = path.join(projectDirectory, "sfdx-project.json");
-    } else {
-      pathToProjectConfig = "sfdx-project.json";
-    }
-    fs.writeJSONSync(pathToProjectConfig, packageConfig, { spaces: 2 });
+    return moveAction.action;
   }
 
   private getChoicesForMovingMetadata(metadata) {
@@ -376,23 +262,51 @@ export default class Pull extends Command {
     }
   }
 
-  /**
-   * Fuzzy search for existing packages in the sfdx-project.json
-   * @param answers
-   * @param input
-   * @returns
-   */
-  private searchExistingPackages(answers, input) {
-    let packages = ProjectConfig.getAllPackages(null);
+  private async getPlusOneMoveAction() {
+    let plusOneMoveAction = await inquirer.prompt({
+      type: "list",
+      name: "action",
+      message: `Select additional package`,
+      choices: [
+        { name: "Existing", value: MoveAction.EXISTING },
+        { name: "New", value: MoveAction.NEW },
+      ],
+    });
 
-    const defaultPackage =
-      ProjectConfig.getDefaultSFDXPackageDescriptor(null).package;
-    packages = packages.filter((packageName) => packageName !== defaultPackage);
-
-    if (input) {
-      return fuzzy.filter(input, packages).map((elem) => elem.string);
-    } else return packages;
+    return plusOneMoveAction.action;
   }
+
+  private async getSingleRecommendedPackage(
+    recommended: { package: string; aliasfy: boolean }[]
+  ) {
+    let singleRecommendedPackage = await inquirer.prompt({
+      type: "list",
+      name: "package",
+      message: "Select recommended package",
+      choices: recommended.map((elem) => elem.package),
+    });
+
+    return singleRecommendedPackage.package;
+  }
+
+
+  private addNewPackageToProjectConfig(
+    packageDescriptor,
+    indexOfPackage: number,
+    projectConfig
+  ) {
+    projectConfig.packageDirectories.forEach((dir) => {
+      if (dir.package === packageDescriptor.package)
+        throw new Error(`Package with name ${packageDescriptor.package} already exists`);
+    });
+
+    projectConfig.packageDirectories.splice(
+      indexOfPackage,
+      0,
+      packageDescriptor
+    );
+  }
+
 
   private async getStatusResult(targetOrg: string) {
     let statusResult;
@@ -464,73 +378,9 @@ export default class Pull extends Command {
     console.log(table.toString());
   }
 
-  // /**
-  //  * Implement own method, as @salesforce/source-deploy-retrieve getTypeBySuffix does not walk through children
-  //  * @param suffix
-  //  */
-  // private getTypeBySuffix(suffix: string): MetadataType {
-  //   let metadataType: MetadataType;
-
-  //   outer:
-  //   for (let type in this.registry.types) {
-
-  //     if (this.registry.types[type].suffix === suffix) {
-  //       metadataType = this.registry.types[type];
-  //       break;
-  //     } else if (this.registry.types[type].children) {
-  //       let typesOfChildren = this.registry.types[type].children?.types;
-  //       for (let type in typesOfChildren) {
-  //         if (typesOfChildren[type].suffix === suffix) {
-  //           metadataType = typesOfChildren[type];
-  //           break outer;
-  //         }
-  //       }
-  //     }
-  //   }
-
-  //   return metadataType;
-  // }
-
-  // private getMetadataSuffix(file: string): string {
-  //   let metadataSuffix: string;
-
-  //   const filename = path.basename(file);
-  //   const match = filename.match(/\.(?<suffix>.+)-meta.xml$/i);
-  //   if (match?.groups?.suffix) {
-  //     metadataSuffix = match.groups.suffix;
-  //   } else {
-  //     metadataSuffix = "";
-  //   }
-
-  //   return metadataSuffix;
-  // }
-
-  // private moveComponentToPackage(component: Component, packageDir: string) {
-  //   let directoryname: string;
-  //   if (component.folderType) {
-  //     let folderName = path.basename(path.dirname(component.path));
-  //     directoryname = path.join(component.directoryName, folderName);
-  //   } else directoryname = component.directoryName;
-
-  //   // check whether component directory exists
-  //   let directory = glob.sync(`${directoryname}/`, {
-  //     cwd: packageDir,
-  //     absolute: true
-  //   });
-
-  //   let filename = path.basename(component.path);
-  //   if (directory.length === 1) {
-  //     fs.moveSync(component.path, path.join(directory, filename), {overwrite: false});
-  //   } else {
-  //     let directory = path.join(packageDir, "main", "default", directoryname);
-  //     fs.mkdirpSync(directory);
-  //     fs.moveSync(component.path, path.join(directory, filename), {overwrite: false})
-  //   }
-  //   // const packageDirContents = FileSystem.readdirRecursive(packageDir);
-  //   // // packageDirContents.forEach((elem) => )
-
-  //   // // if (component.)
-  // }
+  private writeProjectConfigToFile(projectConfig: any) {
+    fs.writeJSONSync("sfdx-project.json", projectConfig, { spaces: 2 });
+  }
 }
 
 enum MoveAction {
@@ -546,12 +396,6 @@ enum Strategy {
   PLUS_ONE = "plus-one",
   DELETE = "delete",
 }
-
-// interface Component extends MetadataType {
-//   // path of component
-//   path: string;
-//   recommended: string;
-// }
 
 interface Instruction {
   fullName: string;
