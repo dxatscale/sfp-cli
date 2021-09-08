@@ -129,7 +129,7 @@ export default class Pull extends Command {
     console.log("Pulling source components...");
     let pullResult = JSON.parse(
       child_process.execSync(
-        `sfdx force:source:pull -u ${scratchOrgUserName}} -f --json`,
+        `sfdx force:source:pull -u ${scratchOrgUserName} -f --json`,
         {
           encoding: "utf8",
           stdio: "pipe",
