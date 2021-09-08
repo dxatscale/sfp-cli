@@ -8,7 +8,7 @@ import * as fs from "fs-extra";
 import child_process = require("child_process");
 import inquirer = require("inquirer");
 import ProjectConfig from "@dxatscale/sfpowerscripts.core/lib/project/ProjectConfig";
-import * as resource from "../resource.json";
+import * as metadataRegistry from "../metadataRegistry.json";
 const Table = require("cli-table");
 import SFPlogger, {
   COLOR_HEADER,
@@ -96,8 +96,8 @@ export default class Pull extends Command {
       let moveAction = await this.getMoveAction(instruction);
 
       if (moveAction === MoveAction.RECOMMENDED) {
-        if (resource.types[instruction.type].strategy === Strategy.PLUS_ONE) {
-          instruction.destination.push(...resource.types[instruction.type].recommended);
+        if (metadataRegistry.types[instruction.type].strategy === Strategy.PLUS_ONE) {
+          instruction.destination.push(...metadataRegistry.types[instruction.type].recommended);
 
           const plusOneMoveAction = await this.getPlusOneMoveAction();
           if (plusOneMoveAction === MoveAction.EXISTING) {
@@ -114,18 +114,18 @@ export default class Pull extends Command {
             throw new Error(`Unrecognised MoveAction ${moveAction}`);
           }
 
-        } else if (resource.types[instruction.type].strategy === Strategy.DUPLICATE) {
-          instruction.destination.push(...resource.types[instruction.type].recommended);
+        } else if (metadataRegistry.types[instruction.type].strategy === Strategy.DUPLICATE) {
+          instruction.destination.push(...metadataRegistry.types[instruction.type].recommended);
 
-        } else if (resource.types[instruction.type].strategy === Strategy.SINGLE) {
+        } else if (metadataRegistry.types[instruction.type].strategy === Strategy.SINGLE) {
           const singleRecommendedPackage = await this.getSingleRecommendedPackage(
-            resource.types[instruction.type].recommended
+            metadataRegistry.types[instruction.type].recommended
           );
           instruction.destination.push(
-            resource.types[instruction.type].recommended.find((elem) => elem.package === singleRecommendedPackage)
+            metadataRegistry.types[instruction.type].recommended.find((elem) => elem.package === singleRecommendedPackage)
           );
 
-        } else if (resource.types[instruction.type].strategy === Strategy.DELETE) {
+        } else if (metadataRegistry.types[instruction.type].strategy === Strategy.DELETE) {
           // do nothing
         } else {
           throw new Error("Strategy not defined or unknown");
@@ -234,14 +234,14 @@ export default class Pull extends Command {
   }
 
   private getChoicesForMovingMetadata(metadata) {
-    if (resource.types[metadata.type]?.strategy) {
-      let recommendedPackages = resource.types[metadata.type].recommended?.map(
+    if (metadataRegistry.types[metadata.type]?.strategy) {
+      let recommendedPackages = metadataRegistry.types[metadata.type].recommended?.map(
         (elem) => elem.package
       );
       return [
         {
           name: `Recommended (Strategy: ${
-            resource.types[metadata.type].strategy
+            metadataRegistry.types[metadata.type].strategy
           }) ${recommendedPackages ? recommendedPackages : ""}`,
           value: MoveAction.RECOMMENDED,
         },
