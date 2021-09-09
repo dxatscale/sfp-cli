@@ -1,3 +1,12 @@
+**Philosophy**
+ - No flags
+ - No need to remember which commands to be used and in what order
+ - Rely on confirmation and prompts
+ - Confirm users to a process, if they move away from the process, this CLI is not for you.
+
+
+**Commands**
+
 **sfp init** 
   
 
