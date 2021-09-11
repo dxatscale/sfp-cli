@@ -42,15 +42,24 @@ export default class PromptToPickAnOrg {
     }
   }
 
-  private getListOfScratchOrgs(): Array<{name:string,alias:string,value:string}> {
+  private getListOfDevOrgs(): Array<{name:string,alias:string,value:string}> {
     if (!isEmpty(this.orgList.scratchOrgs)) {
-      let scratchOrgList = new Array<{name:string,alias:string,value:string}>();
+      let devOrgList = new Array<{name:string,alias:string,value:string}>();
       this.orgList.scratchOrgs.map((element) => {
-        scratchOrgList.push({name:`${element.username} - ${element.alias}`,alias:element.alias,value:element.username});
+        devOrgList.push({name:`${element.username} - ${element.alias}`,alias:element.alias,value:element.username});
       });
-      return scratchOrgList;
+
+      let sandboxes = this.orgList.nonScratchOrgs.filter(
+        (orgs) => orgs.isDevHub === false
+      );
+      sandboxes.map((element) => {
+        devOrgList.push({name:`${element.username} - ${element.alias}`,alias:element.alias,value:element.username});
+      });
+
+
+      return devOrgList;
     } else {
-      throw new Error("Unable to find any scratch orgs");
+      throw new Error("Unable to find any dev orgs");
     }
   }
 
@@ -73,18 +82,18 @@ export default class PromptToPickAnOrg {
     return devhub.username;
   }
 
-  public async promptForScratchOrgSelection(): Promise<string> {
+  public async promptForDevOrgSelection(): Promise<string> {
     await this.fetchOrgs();
 
-    let scratchOrgList = this.getListOfScratchOrgs();
-    let defaultChoiceIndex =scratchOrgList.findIndex(element=>element.alias==this.defaultOrg.alias || element.value == this.defaultOrg.username)
+    let devOrgList = this.getListOfDevOrgs();
+    let defaultChoiceIndex =devOrgList.findIndex(element=>element.alias==this.defaultOrg.alias || element.value == this.defaultOrg.username)
 
     const devhub = await inquirer.prompt([
       {
         type: "list",
         name: "username",
-        message: "Pick a Scratch Org",
-        choices: scratchOrgList,
+        message: "Pick a Dev Org",
+        choices:  devOrgList,
         default: defaultChoiceIndex
       },
     ]);
