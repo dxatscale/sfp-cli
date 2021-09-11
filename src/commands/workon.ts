@@ -1,4 +1,4 @@
-import { Command, flags } from "@oclif/command";
+import { flags } from "@oclif/command";
 import * as fs from "fs-extra";
 import inquirer = require("inquirer");
 inquirer.registerPrompt(
@@ -28,8 +28,9 @@ import cli from "cli-ux";
 import simpleGit, { SimpleGit } from "simple-git";
 import path = require("path");
 import Init from "./init";
+import SfpCommand from "../SfpCommand";
 
-export default class Workon extends Command {
+export default class Workon extends SfpCommand {
   static description = "Interactive command to initiate a new work item using the DX@Scale flow";
 
   static flags = {
@@ -45,16 +46,7 @@ export default class Workon extends Command {
   sfpProjectConfig: any;
 
   async run() {
-    const { args, flags } = this.parse(Workon);
 
-
-
-
-
-   if(args.caller!=='inner')
-    SFPlogger.log(
-      COLOR_HEADER(`sfp cli -- The DX@Scale Dev CLI -- ${this.config.version}`)
-    );
 
 
     //TODO: Move to Base Class
@@ -83,7 +75,7 @@ export default class Workon extends Command {
         "This command must be run in the root directory of a SFDX project"
       );
 
-   if(args.mode =='start')
+   if(this.args.mode =='start')
    {
     SFPlogger.log(
       COLOR_KEY_MESSAGE(
@@ -92,7 +84,7 @@ export default class Workon extends Command {
     );
      this.workItem = await this.promptAndCaptureWorkItem();
     }
-    else if(args.mode==='existing')
+    else if(this.args.mode==='existing')
     {
       SFPlogger.log(
         COLOR_KEY_MESSAGE(
