@@ -32,7 +32,7 @@ export default class Init extends SfpCommand {
 
 
 
-  async run() {
+  async exec() {
 
 
 

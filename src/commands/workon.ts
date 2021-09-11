@@ -45,7 +45,7 @@ export default class Workon extends SfpCommand {
   workItem: WorkItem;
   sfpProjectConfig: SfpProjectConfig = {};
 
-  async run() {
+  async exec() {
 
     if (this.sfpProjectConfig === null || this.sfpProjectConfig === undefined) {
       let args = new Array<string>();
@@ -57,37 +57,28 @@ export default class Workon extends SfpCommand {
       );
     }
 
-    // TODO: Move to property requiresProject: boolean
-    if (!fs.existsSync("sfdx-project.json"))
-      throw new Error(
-        "This command must be run in the root directory of a SFDX project"
-      );
+    SFPlogger.log(COLOR_KEY_MESSAGE("Provide details of the workitem"));
 
-   if(this.args.mode =='start')
-   {
+    let workItemId = await this.promptAndCaptureWorkItem();
+    this.workItem = new WorkItem(workItemId);
+
+
+   //Check config whether workItem is available
+   if (this.sfpProjectConfig.workItems[this.workItem.id]) {
     SFPlogger.log(
-      COLOR_KEY_MESSAGE(
-        "Provide details of the workitem"
-      )
+      COLOR_WARNING("Workitem already exists.. Switching to workItem")
     );
-     this.workItem.id = await this.promptAndCaptureWorkItem();
-    }
-    else if(this.args.mode==='existing')
-    {
-      SFPlogger.log(
-        COLOR_WARNING("Workitem already exists.. Switching to workItem")
-      );
-      //Get existing workItem detail
-      this.workItem = this.sfpProjectConfig.workItems[this.workItem.id];
-    } else {
-      //Get Type
-      this.workItem.type = await this.promptForWorkItemType();
+    //Get existing workItem detail
+    this.workItem = this.sfpProjectConfig.workItems[this.workItem.id];
+  } else {
+    //Get Type
+    this.workItem.type = await this.promptForWorkItemType();
 
-      //Get  Tracking branch
-      this.workItem.trackingBranch = await this.promptAndCaptureTrackingBranch(
-        this.sfpProjectConfig.defaultBranch
-      );
-    }
+    //Get  Tracking branch
+    this.workItem.trackingBranch = await this.promptAndCaptureTrackingBranch(
+      this.sfpProjectConfig.defaultBranch
+    );
+  }
 
     let branchName = `${this.workItem.type}/${this.workItem.id.toUpperCase()}`;
 

@@ -13,7 +13,7 @@ export default class WorkItem extends SfpCommand {
 
   static args = [{name: 'file'}]
 
-  async run() {
+  async exec() {
 
     let topic = await this.promptAndCaptureOption();
 
