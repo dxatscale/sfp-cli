@@ -27,6 +27,8 @@ import simpleGit, { SimpleGit } from "simple-git";
 import path = require("path");
 import Init from "./init";
 import SfpCommand from "../SfpCommand";
+import { WorkItem } from "../types/WorkItem";
+import { SfpProjectConfig } from "../types/SfpProjectConfig";
 
 export default class Workon extends SfpCommand {
   static description = "Interactive command to initiate a new work item using the DX@Scale flow";
@@ -68,7 +70,7 @@ export default class Workon extends SfpCommand {
         "Provide details of the workitem"
       )
     );
-     this.workItem = await this.promptAndCaptureWorkItem();
+     this.workItem.id = await this.promptAndCaptureWorkItem();
     }
     else if(this.args.mode==='existing')
     {

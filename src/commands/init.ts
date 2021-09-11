@@ -17,7 +17,9 @@ import PoolListImpl from "../impl/pool/PoolListImpl";
 import { isEmpty } from "lodash";
 import ScratchOrg from "@dxatscale/sfpowerscripts.core/lib/scratchorg/ScratchOrg";
 import SfpCommand from '../SfpCommand';
-
+import * as fs from "fs-extra";
+import { Org } from '@salesforce/core';
+import path = require("path");
 
 export default class Init extends SfpCommand {
   static description = 'describe the command here'
@@ -88,12 +90,12 @@ export default class Init extends SfpCommand {
 
 
     fs.writeFileSync(
-      path.join(this.config.configDir, `${projectName}.json`),
+      path.join(this.config.configDir, `${this.projectName}.json`),
       JSON.stringify(this.sfpProjectConfig)
     );
 
     console.log(
-      COLOR_SUCCESS(`Project ${projectName} succesfully intiialized`)
+      COLOR_SUCCESS(`Project ${this.projectName} succesfully intiialized`)
     );
   }
 
