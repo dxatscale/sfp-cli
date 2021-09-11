@@ -17,7 +17,7 @@ export default class WorkItem extends SfpCommand {
 
     let topic = await this.promptAndCaptureOption();
 
-    if(topic === 'start')
+    if(topic === 'Work on a new item')
     {
       let args=new Array<string>();
       args.push("inner");
@@ -25,7 +25,7 @@ export default class WorkItem extends SfpCommand {
       let workOn:Workon = new Workon(args,this.config);
       await workOn.run();
     }
-    else if(topic === 'existing')
+    else if(topic === 'Switch to an existing work item')
     {
       let args=new Array<string>();
       args.push("inner");
@@ -44,7 +44,7 @@ export default class WorkItem extends SfpCommand {
         name: "option",
         message: "Select an option to proceed?",
         choices: [
-          "Work on a new item ",
+          "Work on a new item",
           "Switch to an existing work item",
           "Submit a work item"
         ],

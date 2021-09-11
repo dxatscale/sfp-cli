@@ -2,10 +2,17 @@ import Command from "@oclif/command";
 import { OutputArgs, OutputFlags } from '@oclif/parser';
 import SFPlogger, {
   COLOR_HEADER,
+  COLOR_WARNING,
   LoggerLevel
 } from "@dxatscale/sfpowerscripts.core/lib/logger/SFPLogger";
+import path = require("path");
+import { SfpProjectConfig } from "./types/SfpProjectConfig";
+import * as fs from "fs-extra";
 
 export default abstract class SfpCommand extends Command {
+
+
+
 
   // The parsed flags for easy reference by this command; assigned in init
   protected flags: OutputFlags<any>;
@@ -14,6 +21,8 @@ export default abstract class SfpCommand extends Command {
   protected args: OutputArgs<any>;
 
   protected varargs?: any;
+  protected projectName: string;
+  protected sfpProjectConfig: SfpProjectConfig={};
 
   // TypeScript does not yet have assertion-free polymorphic access to a class's static side from the instance side
   protected get statics() {
@@ -45,6 +54,15 @@ export default abstract class SfpCommand extends Command {
         )
       );
     }
+
+    this.projectName=`${path.basename(process.cwd())}`;
+    try
+    {
+    this.sfpProjectConfig = fs.readJsonSync(path.join(this.config.configDir, `${this.projectName}.json`)) as SfpProjectConfig
+    } catch(error){
+      console.log(COLOR_WARNING(`Project not initialized yet, Initializing...`));
+    }
+
 
   }
 
