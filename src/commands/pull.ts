@@ -61,11 +61,11 @@ export default class Pull extends Command {
 
 
     //Prompt to Pick a scratch Org
-    let scratchOrgUserName = await new PromptToPickAnOrg({alias:aliasName}).promptForScratchOrgSelection();
+    let devOrgUserName = await new PromptToPickAnOrg({alias:aliasName}).promptForDevOrgSelection();
 
 
     const statusResult = await this.getStatusResult(
-      scratchOrgUserName
+      devOrgUserName
     );
 
     if (statusResult.length === 0) {
@@ -156,7 +156,7 @@ export default class Pull extends Command {
     console.log("\nPulling source components...");
     let pullResult = JSON.parse(
       child_process.execSync(
-        `sfdx force:source:pull -u ${scratchOrgUserName} -f --json`,
+        `sfdx force:source:pull -u ${devOrgUserName} -f --json`,
         {
           encoding: "utf8",
           stdio: "pipe",
