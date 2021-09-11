@@ -15,7 +15,6 @@ export default class WorkItem extends SfpCommand {
 
   async run() {
 
-
     let topic = await this.promptAndCaptureOption();
 
     if(topic === 'start')
