@@ -14,10 +14,11 @@ import SFPlogger, {
 import PromptToPickAnOrg from "../prompts/PromptToPickAnOrg";
 import PackagePrompt from "../prompts/PackagePrompt";
 import simpleGit, { SimpleGit } from "simple-git";
-import SfpCommand from '../SfpCommand';
+import CommandsWithInitCheck from '../sharedCommandBase/CommandsWithInitCheck';
 
 
-export default class Pull extends SfpCommand {
+
+export default class Pull extends CommandsWithInitCheck {
   static description = 'pull source from scratch org/sandbox to the project. Provides interactive interface for packaging new metadata.'
 
   static examples = [`$ sfp pull -u <scratchorg>`];
@@ -31,14 +32,7 @@ export default class Pull extends SfpCommand {
 
   static hidden = true;
 
-  async exec() {
-
-    // TODO: Move to property requiresProject: boolean
-    if (!fs.existsSync("sfdx-project.json"))
-      throw new Error(
-        "This command must be run in the root directory of a SFDX project"
-      );
-
+  async executeCommand() {
 
     //Intitialize Git
     const git: SimpleGit = simpleGit();

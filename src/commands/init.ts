@@ -22,7 +22,7 @@ import { Org } from '@salesforce/core';
 import path = require("path");
 
 export default class Init extends SfpCommand {
-  static description = 'describe the command here'
+  static description = 'Intializes the project with various defaults'
 
   static flags = {
     help: flags.help({ char: "h" }),
@@ -33,13 +33,6 @@ export default class Init extends SfpCommand {
 
 
   async exec() {
-
-
-
-    if (!fs.existsSync("sfdx-project.json"))
-      throw new Error(
-        "This command must be run in the root directory of a SFDX project"
-      );
 
     //TODO: check for DX@Scale project
 
@@ -70,6 +63,9 @@ export default class Init extends SfpCommand {
       }).promptForDevHubSelection();
 
       const hubOrg = await Org.create({ aliasOrUsername: devHubUserName });
+      this.sfpProjectConfig.defaultDevHub = devHubUserName;
+
+      //Select Default Scratch Org Pool
       let scratchOrgsInDevHub = await new PoolListImpl(
         hubOrg,
         null,
@@ -81,10 +77,15 @@ export default class Init extends SfpCommand {
       let selectedTag;
       if (!isEmpty(tags)) {
         selectedTag = await this.promptForPoolSelection(tags);
+        this.sfpProjectConfig.defaultPool = selectedTag;
       }
-      this.sfpProjectConfig.defaultDevHub = devHubUserName;
-      this.sfpProjectConfig.defaultPool = selectedTag;
     }
+
+
+
+    //TODO: Check for Repo Providers CLI Installed
+    //TODO: Check for existence of SFDX and Plugins
+
 
     fs.mkdirpSync(this.config.configDir);
 
@@ -121,7 +122,7 @@ export default class Init extends SfpCommand {
     let tagArray = new Array<string>();
 
     Object.keys(tagCounts).forEach(function (key) {
-      if (tagCounts[key] > 1) tagArray.push(key);
+      if (tagCounts[key] >= 1) tagArray.push(key);
     });
 
     return tagArray;
@@ -178,4 +179,8 @@ export default class Init extends SfpCommand {
 
     return defaultBranchPrompt.branch;
   }
+
+
+
+
 }

@@ -47,7 +47,7 @@ export default abstract class SfpCommand extends Command {
       console.log(COLOR_WARNING(`Project not initialized yet, Initializing...`));
     }
 
-    return await this.exec();
+    return this.exec();
   }
 
   protected async init(): Promise<void> {

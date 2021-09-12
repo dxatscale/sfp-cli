@@ -1,11 +1,11 @@
 import {flags} from '@oclif/command'
 import inquirer = require('inquirer')
 import SFPLogger, { COLOR_HEADER } from "@dxatscale/sfpowerscripts.core/lib/logger/SFPLogger";
-import SfpCommand from '../SfpCommand';
 import Pull from './pull';
+import CommandsWithInitCheck from '../sharedCommandBase/CommandsWithInitCheck';
 
 
-export default class Sync extends SfpCommand {
+export default class Sync extends CommandsWithInitCheck {
   static description = 'sync changes effortlessly either with repository or development environment'
 
   static flags = {
@@ -13,18 +13,18 @@ export default class Sync extends SfpCommand {
   }
   static args = [{name: 'file'}]
 
-  async exec() {
+  async executeCommand() {
 
     let option = await this.promptAndCaptureOption();
 
-    if(option === 'Sync local with remote repository')
+    if(option === 'sync-git')
     {
       let args=new Array<string>();
       args.push("inner");
 
 
     }
-    else if(option === 'Sync local with Dev Org')
+    else if(option === 'sync-org')
     {
       let args=new Array<string>();
       args.push("inner");
@@ -43,8 +43,8 @@ export default class Sync extends SfpCommand {
         name: "option",
         message: "Select an option to proceed?",
         choices: [
-          "Sync local with remote repository",
-          "Sync local with Dev Org",
+          { name: "Sync local with remote repository",value:"sync-git"},
+          { name: "Sync local with Dev Org",value:"sync-org"},
         ],
         default: "Sync local with remote repository"
       },
