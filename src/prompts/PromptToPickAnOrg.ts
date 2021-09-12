@@ -11,7 +11,7 @@ export default class PromptToPickAnOrg {
 
   constructor(private defaultOrg?:{username?:string,alias?:string})
   {
-    if((defaultOrg.username==null || defaultOrg.username == undefined) && defaultOrg.alias )
+    if((defaultOrg?.username==null || defaultOrg?.username == undefined) && defaultOrg?.alias )
     {
       defaultOrg.username = convertAliasToUsername(defaultOrg.alias);
     }
@@ -23,8 +23,6 @@ export default class PromptToPickAnOrg {
   private async getListofAuthenticatedOrgs() {
     let orgList: OrgList = new OrgList();
     return  orgList.exec(true);
-
-
   }
 
   private getListOfAuthenticatedLocalDevHubs(): Array<{name:string,alias:string,value:string}> {
@@ -68,7 +66,7 @@ export default class PromptToPickAnOrg {
 
 
     let devHubOrgUserNameList = this.getListOfAuthenticatedLocalDevHubs();
-    let defaultChoiceIndex =devHubOrgUserNameList.findIndex(element=>element.alias==this.defaultOrg.alias || element.value == this.defaultOrg.username)
+    let defaultChoiceIndex =devHubOrgUserNameList.findIndex(element=>element.alias==this.defaultOrg?.alias || element.value == this.defaultOrg?.username)
     const devhub = await inquirer.prompt([
       {
         type: "list",
@@ -86,9 +84,9 @@ export default class PromptToPickAnOrg {
     await this.fetchOrgs();
 
     let devOrgList = this.getListOfDevOrgs();
-    let defaultChoiceIndex =devOrgList.findIndex(element=>element.alias==this.defaultOrg.alias || element.value == this.defaultOrg.username)
+    let defaultChoiceIndex =devOrgList.findIndex(element=>element.alias==this.defaultOrg?.alias || element.value == this.defaultOrg?.username)
 
-    const devhub = await inquirer.prompt([
+    const devOrg = await inquirer.prompt([
       {
         type: "list",
         name: "username",
@@ -98,13 +96,13 @@ export default class PromptToPickAnOrg {
       },
     ]);
 
-    return devhub.username;
+    return devOrg.username;
   }
 
 
 
   private async fetchOrgs() {
-    cli.action.start(` Fetching Orgs...`);
+    cli.action.start(`  Fetching Orgs...`);
     if (!this.orgList)
       this.orgList = await this.getListofAuthenticatedOrgs();
 
