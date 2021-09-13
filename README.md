@@ -31,7 +31,7 @@ USAGE
 * [`sfp help [COMMAND]`](#sfp-help-command)
 * [`sfp init [CALLER] [MODE]`](#sfp-init-caller-mode)
 * [`sfp sync [FILE]`](#sfp-sync-file)
-* [`sfp workitem [FILE]`](#sfp-workitem-file)
+* [`sfp work [FILE]`](#sfp-work-file)
 
 ## `sfp help [COMMAND]`
 
@@ -78,17 +78,17 @@ OPTIONS
 
 _See code: [src/commands/sync.ts](https://github.com/dxatscale/sfp-cli/blob/v0.0.14/src/commands/sync.ts)_
 
-## `sfp workitem [FILE]`
+## `sfp work [FILE]`
 
 create/switch/submit a workitem
 
 ```
 USAGE
-  $ sfp workitem [FILE]
+  $ sfp work [FILE]
 
 OPTIONS
   -h, --help  show CLI help
 ```
 
-_See code: [src/commands/workitem.ts](https://github.com/dxatscale/sfp-cli/blob/v0.0.14/src/commands/workitem.ts)_
+_See code: [src/commands/work.ts](https://github.com/dxatscale/sfp-cli/blob/v0.0.14/src/commands/work.ts)_
 <!-- commandsstop -->

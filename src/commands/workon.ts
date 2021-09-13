@@ -6,9 +6,7 @@ inquirer.registerPrompt(
   require("inquirer-autocomplete-prompt")
 );
 import SFPlogger, {
-  COLOR_ERROR,
   COLOR_HEADER,
-  COLOR_INFO,
   COLOR_KEY_MESSAGE,
   COLOR_SUCCESS,
   COLOR_WARNING,
@@ -29,6 +27,8 @@ import simpleGit, { SimpleGit } from "simple-git";
 import path = require("path");
 import Init from "./init";
 import SfpCommand from "../SfpCommand";
+import { WorkItem } from "../types/WorkItem";
+import { SfpProjectConfig } from "../types/SfpProjectConfig";
 
 export default class Workon extends SfpCommand {
   static description = "Interactive command to initiate a new work item using the DX@Scale flow";
@@ -43,63 +43,42 @@ export default class Workon extends SfpCommand {
   static args = [{ name: "caller" }, { name: "mode" }];
   orgList: any;
   workItem: WorkItem;
-  sfpProjectConfig: any;
+  sfpProjectConfig: SfpProjectConfig = {};
 
-  async run() {
+  async exec() {
 
-
-
-    //TODO: Move to Base Class
-    let projectName=`${path.basename(process.cwd())}`;
-    try
-    {
-    this.sfpProjectConfig =  fs.readJSONSync(path.join(this.config.configDir, `${projectName}.json`))
-    } catch(error){
-      console.log(COLOR_WARNING(`Project not initialized yet, Initializing...`));
-    }
-
-    if(this.sfpProjectConfig===null || this.sfpProjectConfig===undefined)
-    {
-      let args=new Array<string>();
+    if (this.sfpProjectConfig === null || this.sfpProjectConfig === undefined) {
+      let args = new Array<string>();
       args.push("inner");
-      let init:Init = new Init(args,this.config);
+      let init: Init = new Init(args, this.config);
       await init.run();
-      this.sfpProjectConfig = await fs.readJSON(path.join(this.config.configDir, `${projectName}.json`))
+      this.sfpProjectConfig = await fs.readJSON(
+        path.join(this.config.configDir, `${this.projectName}.json`)
+      );
     }
 
+    SFPlogger.log(COLOR_KEY_MESSAGE("Provide details of the workitem"));
+
+    let workItemId = await this.promptAndCaptureWorkItem();
+    this.workItem = new WorkItem(workItemId);
 
 
-    // TODO: Move to property requiresProject: boolean
-    if (!fs.existsSync("sfdx-project.json"))
-      throw new Error(
-        "This command must be run in the root directory of a SFDX project"
-      );
-
-   if(this.args.mode =='start')
-   {
+   //Check config whether workItem is available
+   if (this.sfpProjectConfig.workItems[this.workItem.id]) {
     SFPlogger.log(
-      COLOR_KEY_MESSAGE(
-        "Provide details of the workitem"
-      )
+      COLOR_WARNING("Workitem already exists.. Switching to workItem")
     );
-     this.workItem = await this.promptAndCaptureWorkItem();
-    }
-    else if(this.args.mode==='existing')
-    {
-      SFPlogger.log(
-        COLOR_KEY_MESSAGE(
-          "Provide details of the workitem"
-        )
-      );
+    //Get existing workItem detail
+    this.workItem = this.sfpProjectConfig.workItems[this.workItem.id];
+  } else {
+    //Get Type
+    this.workItem.type = await this.promptForWorkItemType();
 
-      this.workItem = await this.promptAndCaptureWorkItem();
-    }
-    else
-    {
-       //default:start
-       this.workItem = await this.promptAndCaptureWorkItem();
-    }
-
+    //Get  Tracking branch
+    this.workItem.trackingBranch = await this.promptAndCaptureTrackingBranch(
+      this.sfpProjectConfig.defaultBranch
+    );
+  }
 
     let branchName = `${this.workItem.type}/${this.workItem.id.toUpperCase()}`;
 
@@ -109,38 +88,64 @@ export default class Workon extends SfpCommand {
     await git.fetch("origin");
     cli.action.stop();
 
+    //Get Branch choices
+    let branchChoices = await this.getBranchChoice(git, branchName);
 
-   //Get Branch choices
-    let branchChoices  = await this.getBranchChoice(git,branchName);
-
-
-    if (branchChoices[0].value==='create') {
-      await git.checkoutBranch(branchName, `remotes/origin/${this.sfpProjectConfig.defaultBranch}`);
-      console.log(COLOR_KEY_MESSAGE(` Created new branch ${COLOR_HEADER(branchName)} from ${COLOR_HEADER(`origin/${this.sfpProjectConfig.defaultBranch}`)}`));
-    }
-    else if(branchChoices[0].value==='switch')  {
+    //Create or switch branch
+    if (branchChoices[0].value === "create") {
+      await git.checkoutBranch(
+        branchName,
+        `remotes/origin/${this.sfpProjectConfig.defaultBranch}`
+      );
+      console.log(
+        COLOR_KEY_MESSAGE(
+          ` Created new branch ${COLOR_HEADER(branchName)} from ${COLOR_HEADER(
+            `origin/${this.sfpProjectConfig.defaultBranch}`
+          )}`
+        )
+      );
+      this.workItem.branch = branchName;
+    } else if (branchChoices[0].value === "switch") {
       await git.checkout(branchName);
-      console.log(COLOR_KEY_MESSAGE(`Switched to existing branch ${branchName}`));
-    }
-    else {
-
+      console.log(
+        COLOR_KEY_MESSAGE(`Switched to existing branch ${branchName}`)
+      );
+    } else {
       let option = await this.promptForBranchSelection(branchChoices);
       if (option === "switch") {
         await git.checkout(branchName);
-        console.log(COLOR_KEY_MESSAGE(` Switched to existing branch ${COLOR_HEADER(branchName)}`));
+        console.log(
+          COLOR_KEY_MESSAGE(
+            ` Switched to existing branch ${COLOR_HEADER(branchName)}`
+          )
+        );
       } else if (option === "new") {
         await git.deleteLocalBranch(branchName);
-        console.log(COLOR_KEY_MESSAGE(` Deleted existing local branch ${COLOR_HEADER(branchName)}`))
-        await git.checkoutBranch(branchName, `remotes/origin/${this.sfpProjectConfig.defaultBranch}`);
-        console.log(COLOR_KEY_MESSAGE(` Created new branch ${COLOR_HEADER(branchName)} from ${COLOR_HEADER(`origin/${this.sfpProjectConfig.defaultBranch}`)}`));
+        console.log(
+          COLOR_KEY_MESSAGE(
+            ` Deleted existing local branch ${COLOR_HEADER(branchName)}`
+          )
+        );
+        await git.checkoutBranch(
+          branchName,
+          `remotes/origin/${this.sfpProjectConfig.defaultBranch}`
+        );
+        console.log(
+          COLOR_KEY_MESSAGE(
+            ` Created new branch ${COLOR_HEADER(
+              branchName
+            )} from ${COLOR_HEADER(
+              `origin/${this.sfpProjectConfig.defaultBranch}`
+            )}`
+          )
+        );
       }
     }
 
+    //Assign Dev Environment in both cases
     let isDevEnvironmentRequired = await this.promptForNeedForDevEnvironment();
     if (isDevEnvironmentRequired) {
       try {
-
-
         let devHubUserName = this.sfpProjectConfig.defaultDevHub;
 
         let type = await this.promptForOrgTypeSelection();
@@ -157,7 +162,10 @@ export default class Workon extends SfpCommand {
           let tags = this.getPoolTags(scratchOrgsInDevHub);
 
           if (!isEmpty(tags)) {
-            let selectedTag = await this.promptForPoolSelection(tags,this.sfpProjectConfig.defaultPool);
+            let selectedTag = await this.promptForPoolSelection(
+              tags,
+              this.sfpProjectConfig.defaultPool
+            );
             cli.action.start(
               ` Fetching a scratchorg from ${selectedTag} pool `
             );
@@ -167,13 +175,20 @@ export default class Workon extends SfpCommand {
               this.workItem.id
             );
 
+            this.workItem.defaultDevOrg = fetchedOrg.username;
             cli.action.stop();
             await this.displayOrgContents(fetchedOrg);
-            console.log()
-            console.log(COLOR_SUCCESS(`Sucesfully fetched a new dev environment with alias ${this.workItem.id}`));
-            console.log(COLOR_KEY_MESSAGE(`Switched to branch ${branchName}..utilize 'sfp sync ${this.workItem.id}' to operate this environment`))
-
-
+            console.log();
+            console.log(
+              COLOR_SUCCESS(
+                `Sucesfully fetched a new dev environment with alias ${this.workItem.id}`
+              )
+            );
+            console.log(
+              COLOR_KEY_MESSAGE(
+                `Switched to branch ${branchName}..utilize 'sfp sync ${this.workItem.id}' to operate this environment`
+              )
+            );
           } else {
             let isDevEnvironmentCreationRequested =
               await this.promptForCreatingDevEnvironmentIfPoolEmpty();
@@ -187,24 +202,50 @@ export default class Workon extends SfpCommand {
         throw error(`Unable to process request at this time `, error);
       }
     }
+
+    if (
+      this.sfpProjectConfig.workItems == null ||
+      this.sfpProjectConfig.workItems == undefined
+    ) {
+      this.sfpProjectConfig.workItems = {};
+    } else {
+      this.disableExistingWorkItems();
+    }
+
+    //Commit back
+    this.sfpProjectConfig.workItems[this.workItem.id] = this.workItem;
+    this.sfpProjectConfig.workItems[this.workItem.id].isActive = true;
+
+    fs.writeJSONSync(
+      path.join(this.config.configDir, `${this.projectName}.json`),
+      this.sfpProjectConfig
+    );
   }
 
-  private async getBranchChoice(git:SimpleGit,branchName:String):Promise<{name:string,value:string}[]> {
-
-    let branchChoices:any
+  private async getBranchChoice(
+    git: SimpleGit,
+    branchName: String
+  ): Promise<{ name: string; value: string }[]> {
+    let branchChoices: any;
     let branches = await git.branch();
-    let isLocalBranchAvailable:boolean=false;
-    let isRemoteBranchAvailable:boolean=false;
+    let isLocalBranchAvailable: boolean = false;
+    let isRemoteBranchAvailable: boolean = false;
 
-
-
-    if (branches.all.find((branch) => branch.toLowerCase() === branchName.toLowerCase())) {
+    if (
+      branches.all.find(
+        (branch) => branch.toLowerCase() === branchName.toLowerCase()
+      )
+    ) {
       isLocalBranchAvailable = true;
     }
-    if (branches.all.find((branch) => branch.toLowerCase() === (`remotes/origin/${branchName}`).toLowerCase())) {
+    if (
+      branches.all.find(
+        (branch) =>
+          branch.toLowerCase() === `remotes/origin/${branchName}`.toLowerCase()
+      )
+    ) {
       isRemoteBranchAvailable = true;
     }
-
 
     if (isLocalBranchAvailable && !isRemoteBranchAvailable) {
       branchChoices = [
@@ -214,26 +255,21 @@ export default class Workon extends SfpCommand {
           value: "new",
         },
       ];
-    }
-    else if (!isLocalBranchAvailable && isRemoteBranchAvailable) {
+    } else if (!isLocalBranchAvailable && isRemoteBranchAvailable) {
       branchChoices = [
-        { name: "Switch to the existing branch", value: "switch" }
+        { name: "Switch to the existing branch", value: "switch" },
       ];
-    }
-    else if (isLocalBranchAvailable && isRemoteBranchAvailable) {
+    } else if (isLocalBranchAvailable && isRemoteBranchAvailable) {
       branchChoices = [
-        { name: "Switch to the existing branch", value: "switch" }
+        { name: "Switch to the existing branch", value: "switch" },
       ];
-    }
-    else {
-      branchChoices = [
-        { name: "Create new branch", value: "create" }
-      ];
+    } else {
+      branchChoices = [{ name: "Create new branch", value: "create" }];
     }
     return branchChoices;
   }
 
-  private async promptAndCaptureWorkItem(): Promise<WorkItem> {
+  private async promptAndCaptureWorkItem(): Promise<string> {
     const workItem = await inquirer.prompt([
       {
         type: "input",
@@ -241,6 +277,27 @@ export default class Workon extends SfpCommand {
         message: "Input Id for the Work Item",
         validate: this.validateInput,
       },
+    ]);
+
+    return workItem.id;
+  }
+
+  private async promptAndCaptureTrackingBranch(
+    defaultBranch: string
+  ): Promise<string> {
+    const branchPrompt = await inquirer.prompt([
+      {
+        type: "input",
+        name: "branch",
+        message: "What branch should this workitem track?",
+        default: defaultBranch,
+      },
+    ]);
+    return branchPrompt.branch;
+  }
+
+  private async promptForWorkItemType(): Promise<string> {
+    const workItemTypePrompt = await inquirer.prompt([
       {
         type: "list",
         name: "type",
@@ -256,24 +313,11 @@ export default class Workon extends SfpCommand {
             name: "refactor:  A code change that neither fixes a bug or adds a feature",
             value: "refactor",
           },
-        ]
+        ],
       },
     ]);
 
-    return workItem as WorkItem;
-  }
-
-  private async promptForExistingWorkItem(): Promise<WorkItem> {
-    const workItem = await inquirer.prompt([
-      {
-        type: "input",
-        name: "id",
-        message: "Input Id for the Work Item",
-        validate: this.validateInput,
-      },
-    ]);
-
-    return workItem as WorkItem;
+    return workItemTypePrompt.type;
   }
 
   private async promptForNeedForDevEnvironment(): Promise<boolean> {
@@ -282,7 +326,7 @@ export default class Workon extends SfpCommand {
         type: "confirm",
         name: "isDevEnvironmentRequired",
         message: "Do you need a new dev environment?",
-        default: true
+        default: true,
       },
     ]);
     return isDevEnvironmentRequiredPrompt.isDevEnvironmentRequired;
@@ -300,9 +344,10 @@ export default class Workon extends SfpCommand {
     return isCreateDevEnvironmentRequiredPrompt.create;
   }
 
-
-
-  private async promptForPoolSelection(pools: Array<any>,defaultPool:string): Promise<string> {
+  private async promptForPoolSelection(
+    pools: Array<any>,
+    defaultPool: string
+  ): Promise<string> {
     const pool = await inquirer.prompt([
       {
         type: "list",
@@ -310,7 +355,7 @@ export default class Workon extends SfpCommand {
         message:
           "Select a Scratch Org Pool (Only pools with more than 2 orgs are displayed)",
         choices: pools,
-        default: {name: defaultPool,value:defaultPool}
+        default: { name: defaultPool, value: defaultPool },
       },
     ]);
     return pool.tag;
@@ -326,7 +371,7 @@ export default class Workon extends SfpCommand {
           { name: "Fetch a scratchorg from pool", value: "pool" },
           { name: "Create a scratchorg", value: "so" },
           { name: "Create a dev sandbox", value: "sb" },
-        ]
+        ],
       },
     ]);
     return orgType.type;
@@ -340,13 +385,11 @@ export default class Workon extends SfpCommand {
         message:
           "A branch with the name already exists, Please select from the following resolution",
         choices: branchChoices,
-        default: { name: "Delete & Create a new local branch", value: "new" }
+        default: { name: "Delete & Create a new local branch", value: "new" },
       },
     ]);
     return branchResolution.option;
   }
-
-
 
   private async displayOrgContents(scratchOrg: ScratchOrg) {
     try {
@@ -429,9 +472,10 @@ export default class Workon extends SfpCommand {
     else
       return "Please enter a valid issue number with a minimum of 4 characters such as APR-1 or issue-1 etc";
   }
-}
 
-interface WorkItem {
-  id: string;
-  type: string;
+  private disableExistingWorkItems() {
+    for (const [key] of Object.entries(this.sfpProjectConfig.workItems)) {
+      this.sfpProjectConfig.workItems[key].isActive = false;
+    }
+  }
 }

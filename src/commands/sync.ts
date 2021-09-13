@@ -11,10 +11,9 @@ export default class Sync extends SfpCommand {
   static flags = {
     help: flags.help({char: 'h'})
   }
-
   static args = [{name: 'file'}]
 
-  async run() {
+  async exec() {
 
     let option = await this.promptAndCaptureOption();
 

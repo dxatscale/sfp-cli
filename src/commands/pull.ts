@@ -31,7 +31,7 @@ export default class Pull extends SfpCommand {
 
   static hidden = true;
 
-  async run() {
+  async exec() {
 
     // TODO: Move to property requiresProject: boolean
     if (!fs.existsSync("sfdx-project.json"))
@@ -333,7 +333,7 @@ export default class Pull extends SfpCommand {
       {
         type: "input",
         name: "overwrite",
-        message: "To forcibly overwrite local changes, type force"
+        message: "To forcibly overwrite local/remote changes, type force"
       }
     ]);
 
