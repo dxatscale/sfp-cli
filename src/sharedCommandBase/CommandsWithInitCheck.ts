@@ -2,12 +2,16 @@ import SfpCommand from "../SfpCommand";
 import Init from "../commands/init";
 import path = require("path");
 import * as fs from "fs-extra";
+import { SfpProjectConfig } from "../types/SfpProjectConfig";
+import SFPLogger, { LoggerLevel } from "@dxatscale/sfpowerscripts.core/lib/logger/SFPLogger";
 
 export default abstract class CommandsWithInitCheck extends SfpCommand {
 
   async exec() {
 
-    if (this.sfpProjectConfig === null || this.sfpProjectConfig === undefined) {
+    if (!SfpProjectConfig.isValid(this.sfpProjectConfig)) {
+      SFPLogger.log("Project not initialized yet, Initializing...", LoggerLevel.WARN);
+
       let args = new Array<string>();
       args.push("inner");
       let init: Init = new Init(args, this.config);

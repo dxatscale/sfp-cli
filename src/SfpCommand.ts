@@ -1,9 +1,7 @@
 import Command from "@oclif/command";
 import { OutputArgs, OutputFlags } from '@oclif/parser';
 import SFPlogger, {
-  COLOR_HEADER,
-  COLOR_WARNING,
-  LoggerLevel
+  COLOR_HEADER
 } from "@dxatscale/sfpowerscripts.core/lib/logger/SFPLogger";
 import path = require("path");
 import { SfpProjectConfig } from "./types/SfpProjectConfig";
@@ -40,12 +38,17 @@ export default abstract class SfpCommand extends Command {
     }
 
     this.projectName=`${path.basename(process.cwd())}`;
-    try
-    {
-    this.sfpProjectConfig = SfpProjectConfig.toInstance(new SfpProjectConfig(),fs.readJsonSync(path.join(this.config.configDir, `${this.projectName}.json`)));
-    } catch(error){
-      console.log(COLOR_WARNING(`Project not initialized yet, Initializing...`));
+
+    let jsonObj;
+    let pathToSfpProjectConfig = path.join(this.config.configDir, `${this.projectName}.json`);
+    if (fs.existsSync(pathToSfpProjectConfig)) {
+      jsonObj = fs.readJsonSync(pathToSfpProjectConfig);
+    } else {
+      jsonObj = {};
     }
+
+    this.sfpProjectConfig = SfpProjectConfig.toInstance(jsonObj);
+
 
     return this.exec();
   }
