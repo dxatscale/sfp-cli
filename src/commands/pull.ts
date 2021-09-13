@@ -41,6 +41,7 @@ export default class Pull extends CommandsWithInitCheck {
   static hidden = true;
 
   async executeCommand() {
+
     //Intitialize Git
     const git: SimpleGit = simpleGit();
     let currentBranch = (await git.branch()).current;
@@ -357,8 +358,8 @@ export default class Pull extends CommandsWithInitCheck {
       {
         type: "input",
         name: "overwrite",
-        message: "To forcibly overwrite local/remote changes, type force",
-      },
+        message: "To forcibly overwrite local/remote changes, type force"
+      }
     ]);
 
     if (getConfirmationForOverwrite.overwrite !== "force") {

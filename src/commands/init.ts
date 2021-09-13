@@ -179,8 +179,4 @@ export default class Init extends SfpCommand {
 
     return defaultBranchPrompt.branch;
   }
-
-
-
-
 }
