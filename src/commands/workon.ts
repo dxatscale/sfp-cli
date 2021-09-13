@@ -25,12 +25,11 @@ import SFPLogger from "@dxatscale/sfpowerscripts.core/lib/logger/SFPLogger";
 import cli from "cli-ux";
 import simpleGit, { SimpleGit } from "simple-git";
 import path = require("path");
-import Init from "./init";
-import SfpCommand from "../SfpCommand";
 import { WorkItem } from "../types/WorkItem";
 import { SfpProjectConfig } from "../types/SfpProjectConfig";
+import CommandsWithInitCheck from "../sharedCommandBase/CommandsWithInitCheck";
 
-export default class Workon extends SfpCommand {
+export default class Workon extends CommandsWithInitCheck {
   static description = "Interactive command to initiate a new work item using the DX@Scale flow";
 
   static flags = {
@@ -45,17 +44,8 @@ export default class Workon extends SfpCommand {
   workItem: WorkItem;
   sfpProjectConfig: SfpProjectConfig = {};
 
-  async exec() {
+  async executeCommand() {
 
-    if (this.sfpProjectConfig === null || this.sfpProjectConfig === undefined) {
-      let args = new Array<string>();
-      args.push("inner");
-      let init: Init = new Init(args, this.config);
-      await init.run();
-      this.sfpProjectConfig = await fs.readJSON(
-        path.join(this.config.configDir, `${this.projectName}.json`)
-      );
-    }
 
     SFPlogger.log(COLOR_KEY_MESSAGE("Provide details of the workitem"));
 
@@ -63,8 +53,9 @@ export default class Workon extends SfpCommand {
     this.workItem = new WorkItem(workItemId);
 
 
+   this.workItem = new WorkItem(workItemId);
    //Check config whether workItem is available
-   if (this.sfpProjectConfig.workItems[this.workItem.id]) {
+   if (this.sfpProjectConfig.workItems && this.sfpProjectConfig.workItems[this.workItem.id]) {
     SFPlogger.log(
       COLOR_WARNING("Workitem already exists.. Switching to workItem")
     );
@@ -353,7 +344,7 @@ export default class Workon extends SfpCommand {
         type: "list",
         name: "tag",
         message:
-          "Select a Scratch Org Pool (Only pools with more than 2 orgs are displayed)",
+          "Select a Scratch Org Pool (Only pools with alteast 1 org is displayed)",
         choices: pools,
         default: { name: defaultPool, value: defaultPool },
       },
@@ -457,7 +448,7 @@ export default class Workon extends SfpCommand {
     let tagArray = new Array<any>();
 
     Object.keys(tagCounts).forEach(function (key) {
-      if (tagCounts[key] > 1)
+      if (tagCounts[key] >= 1)
         tagArray.push({
           name: key,
           value: key,

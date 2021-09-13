@@ -2,9 +2,9 @@ import {flags} from '@oclif/command'
 import inquirer = require('inquirer')
 import Workon from './workon'
 import SFPLogger, { COLOR_HEADER } from "@dxatscale/sfpowerscripts.core/lib/logger/SFPLogger";
-import SfpCommand from '../SfpCommand';
+import CommandsWithInitCheck from '../sharedCommandBase/CommandsWithInitCheck';
 
-export default class WorkItem extends SfpCommand {
+export default class WorkItem extends CommandsWithInitCheck {
   static description = 'create/switch/submit a workitem'
 
   static flags = {
@@ -13,7 +13,7 @@ export default class WorkItem extends SfpCommand {
 
   static args = [{name: 'file'}]
 
-  async exec() {
+  async executeCommand() {
 
     let topic = await this.promptAndCaptureOption();
 
