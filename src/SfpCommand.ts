@@ -22,7 +22,7 @@ export default abstract class SfpCommand extends Command {
 
   protected varargs?: any;
   protected projectName: string;
-  protected sfpProjectConfig: SfpProjectConfig={};
+  protected sfpProjectConfig: SfpProjectConfig;
 
   // TypeScript does not yet have assertion-free polymorphic access to a class's static side from the instance side
   protected get statics() {
@@ -42,7 +42,7 @@ export default abstract class SfpCommand extends Command {
     this.projectName=`${path.basename(process.cwd())}`;
     try
     {
-    this.sfpProjectConfig = fs.readJsonSync(path.join(this.config.configDir, `${this.projectName}.json`)) as SfpProjectConfig
+    this.sfpProjectConfig = SfpProjectConfig.toInstance(new SfpProjectConfig(),fs.readJsonSync(path.join(this.config.configDir, `${this.projectName}.json`)));
     } catch(error){
       console.log(COLOR_WARNING(`Project not initialized yet, Initializing...`));
     }

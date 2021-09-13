@@ -1,6 +1,9 @@
-import {flags} from '@oclif/command'
-import {ComponentSet, MetadataConverter} from '@salesforce/source-deploy-retrieve';
-import path = require('path');
+import { flags } from "@oclif/command";
+import {
+  ComponentSet,
+  MetadataConverter,
+} from "@salesforce/source-deploy-retrieve";
+import path = require("path");
 import * as fs from "fs-extra";
 import child_process = require("child_process");
 import inquirer = require("inquirer");
@@ -9,17 +12,22 @@ import * as metadataRegistry from "../metadataRegistry.json";
 const Table = require("cli-table");
 import SFPlogger, {
   COLOR_HEADER,
-  LoggerLevel
+  COLOR_KEY_MESSAGE,
+  COLOR_SUCCESS,
+  COLOR_WARNING,
+  LoggerLevel,
 } from "@dxatscale/sfpowerscripts.core/lib/logger/SFPLogger";
 import PromptToPickAnOrg from "../prompts/PromptToPickAnOrg";
 import PackagePrompt from "../prompts/PackagePrompt";
 import simpleGit, { SimpleGit } from "simple-git";
-import CommandsWithInitCheck from '../sharedCommandBase/CommandsWithInitCheck';
-
-
+import CommandsWithInitCheck from "../sharedCommandBase/CommandsWithInitCheck";
+import SourceStatus from "../impl/sfdxwrappers/SourceStatus";
+import cli from "cli-ux";
+import SourcePull from "../impl/sfdxwrappers/SourcePull";
 
 export default class Pull extends CommandsWithInitCheck {
-  static description = 'pull source from scratch org/sandbox to the project. Provides interactive interface for packaging new metadata.'
+  static description =
+    "pull source from scratch org/sandbox to the project. Provides interactive interface for packaging new metadata.";
 
   static examples = [`$ sfp pull -u <scratchorg>`];
 
@@ -37,20 +45,26 @@ export default class Pull extends CommandsWithInitCheck {
     //Intitialize Git
     const git: SimpleGit = simpleGit();
     let currentBranch = (await git.branch()).current;
-    let aliasName = currentBranch.split(/[/]+/).pop();
 
+    //Prompt to Pick a dev Org only if the devOrg is not available
+    let workItem = this.sfpProjectConfig.getWorkItemGivenBranch(currentBranch);
+    let statusResult;
+    let devOrg=workItem.defaultDevOrg;
 
-
-    //Prompt to Pick a scratch Org
-    let devOrgUserName = await new PromptToPickAnOrg({alias:aliasName}).promptForDevOrgSelection();
-
-
-    const statusResult = await this.getStatusResult(
-      devOrgUserName
-    );
+    if (workItem.defaultDevOrg) {
+      statusResult = await this.getStatusResult(workItem.defaultDevOrg);
+    }
+    if (
+      statusResult === "Missing DevOrg" ||
+      workItem.defaultDevOrg === undefined
+    ) {
+      console.log(COLOR_WARNING("  Unable to find the assigned org for this work item"));
+      devOrg = await new PromptToPickAnOrg().promptForDevOrgSelection();
+      statusResult = await this.getStatusResult(devOrg);
+    }
 
     if (statusResult.length === 0) {
-      console.log("No changes found");
+      console.log(COLOR_SUCCESS("  No changes found"));
       return;
     }
 
@@ -59,7 +73,7 @@ export default class Pull extends CommandsWithInitCheck {
     );
 
     console.log(
-      `Found ${remoteAdditions.length} new metadata components, which require a new home`
+     COLOR_KEY_MESSAGE(`  Found ${remoteAdditions.length} new metadata components, which require a new home`)
     );
 
     const projectConfig = ProjectConfig.getSFDXPackageManifest(null);
@@ -77,54 +91,80 @@ export default class Pull extends CommandsWithInitCheck {
       let moveAction = await this.getMoveAction(instruction);
 
       if (moveAction === MoveAction.RECOMMENDED) {
-        if (metadataRegistry.types[instruction.type].strategy === Strategy.PLUS_ONE) {
-          instruction.destination.push(...metadataRegistry.types[instruction.type].recommended);
+        if (
+          metadataRegistry.types[instruction.type].strategy ===
+          Strategy.PLUS_ONE
+        ) {
+          instruction.destination.push(
+            ...metadataRegistry.types[instruction.type].recommended
+          );
 
           const plusOneMoveAction = await this.getPlusOneMoveAction();
           if (plusOneMoveAction === MoveAction.EXISTING) {
-            let existingPackage = await new PackagePrompt(projectConfig).promptForExistingPackage();
-            instruction.destination.push({package: existingPackage.path});
-
+            let existingPackage = await new PackagePrompt(
+              projectConfig
+            ).promptForExistingPackage();
+            instruction.destination.push({ package: existingPackage.path });
           } else if (plusOneMoveAction === MoveAction.NEW) {
-            const newPackage = await new PackagePrompt(projectConfig).promptForNewPackage();
-            this.addNewPackageToProjectConfig(newPackage.descriptor, newPackage.indexOfPackage, projectConfig);
+            const newPackage = await new PackagePrompt(
+              projectConfig
+            ).promptForNewPackage();
+            this.addNewPackageToProjectConfig(
+              newPackage.descriptor,
+              newPackage.indexOfPackage,
+              projectConfig
+            );
             newPackagesDirectories.push(newPackage.descriptor.path);
-            instruction.destination.push({ package: newPackage.descriptor.path });
-
+            instruction.destination.push({
+              package: newPackage.descriptor.path,
+            });
           } else {
             throw new Error(`Unrecognised MoveAction ${moveAction}`);
           }
-
-        } else if (metadataRegistry.types[instruction.type].strategy === Strategy.DUPLICATE) {
-          instruction.destination.push(...metadataRegistry.types[instruction.type].recommended);
-
-        } else if (metadataRegistry.types[instruction.type].strategy === Strategy.SINGLE) {
-          const singleRecommendedPackage = await this.getSingleRecommendedPackage(
-            metadataRegistry.types[instruction.type].recommended
-          );
+        } else if (
+          metadataRegistry.types[instruction.type].strategy ===
+          Strategy.DUPLICATE
+        ) {
           instruction.destination.push(
-            metadataRegistry.types[instruction.type].recommended.find((elem) => elem.package === singleRecommendedPackage)
+            ...metadataRegistry.types[instruction.type].recommended
           );
-
-        } else if (metadataRegistry.types[instruction.type].strategy === Strategy.DELETE) {
+        } else if (
+          metadataRegistry.types[instruction.type].strategy === Strategy.SINGLE
+        ) {
+          const singleRecommendedPackage =
+            await this.getSingleRecommendedPackage(
+              metadataRegistry.types[instruction.type].recommended
+            );
+          instruction.destination.push(
+            metadataRegistry.types[instruction.type].recommended.find(
+              (elem) => elem.package === singleRecommendedPackage
+            )
+          );
+        } else if (
+          metadataRegistry.types[instruction.type].strategy === Strategy.DELETE
+        ) {
           // do nothing
         } else {
           throw new Error("Strategy not defined or unknown");
         }
-
       } else if (moveAction === MoveAction.NEW) {
-        const newPackage = await new PackagePrompt(projectConfig).promptForNewPackage();
-        this.addNewPackageToProjectConfig(newPackage.descriptor, newPackage.indexOfPackage, projectConfig);
+        const newPackage = await new PackagePrompt(
+          projectConfig
+        ).promptForNewPackage();
+        this.addNewPackageToProjectConfig(
+          newPackage.descriptor,
+          newPackage.indexOfPackage,
+          projectConfig
+        );
         newPackagesDirectories.push(newPackage.descriptor.path);
         instruction.destination.push({ package: newPackage.descriptor.path });
-
       } else if (moveAction === MoveAction.EXISTING) {
-        let existingPackage = await new PackagePrompt(projectConfig).promptForExistingPackage();
-        instruction.destination.push({package: existingPackage.path});
-
+        let existingPackage = await new PackagePrompt(
+          projectConfig
+        ).promptForExistingPackage();
+        instruction.destination.push({ package: existingPackage.path });
       } else if (moveAction === MoveAction.NOTHING) {
         continue;
-
       } else {
         throw new Error(`Unrecognised MoveAction ${moveAction}`);
       }
@@ -134,25 +174,18 @@ export default class Pull extends CommandsWithInitCheck {
     newPackagesDirectories.forEach((dir) => fs.mkdirpSync(dir));
     this.writeProjectConfigToFile(projectConfig);
 
-    console.log("\nPulling source components...");
-    let pullResult = JSON.parse(
-      child_process.execSync(
-        `sfdx force:source:pull -u ${devOrgUserName} -f --json`,
-        {
-          encoding: "utf8",
-          stdio: "pipe",
-          maxBuffer: 1024 * 1024 * 5,
-        }
-      )
-    ).result;
-    console.log("Successfully pulled source components");
+    cli.action.start(`  Pulling source components from dev org... ${devOrg}..`);
+    let pullResult = await new SourcePull(devOrg,true).exec(true);
+    cli.action.stop();
+    console.log(COLOR_SUCCESS("  Successfully pulled source components"));
 
-    console.log("\nMoving source components...");
+    console.log("  \nMoving source components...");
 
     for (let instruction of mergePlan) {
       let components = pullResult.pulledSource.filter(
         (component) =>
-          component.fullName === instruction.fullName && component.type === instruction.type
+          component.fullName === instruction.fullName &&
+          component.type === instruction.type
       );
 
       const converter = new MetadataConverter();
@@ -199,10 +232,8 @@ export default class Pull extends CommandsWithInitCheck {
       }
     }
 
-    console.log("Successfully moved source components");
+    console.log(COLOR_SUCCESS("  Successfully moved source components"));
   }
-
-
 
   private async getMoveAction(instruction: Instruction) {
     let moveAction = await inquirer.prompt({
@@ -216,9 +247,9 @@ export default class Pull extends CommandsWithInitCheck {
 
   private getChoicesForMovingMetadata(metadata) {
     if (metadataRegistry.types[metadata.type]?.strategy) {
-      let recommendedPackages = metadataRegistry.types[metadata.type].recommended?.map(
-        (elem) => elem.package
-      );
+      let recommendedPackages = metadataRegistry.types[
+        metadata.type
+      ].recommended?.map((elem) => elem.package);
       return [
         {
           name: `Recommended (Strategy: ${
@@ -266,7 +297,6 @@ export default class Pull extends CommandsWithInitCheck {
     return singleRecommendedPackage.package;
   }
 
-
   private addNewPackageToProjectConfig(
     packageDescriptor,
     indexOfPackage: number,
@@ -274,7 +304,9 @@ export default class Pull extends CommandsWithInitCheck {
   ) {
     projectConfig.packageDirectories.forEach((dir) => {
       if (dir.package === packageDescriptor.package)
-        throw new Error(`Package with name ${packageDescriptor.package} already exists`);
+        throw new Error(
+          `Package with name ${packageDescriptor.package} already exists`
+        );
     });
 
     projectConfig.packageDirectories.splice(
@@ -284,21 +316,19 @@ export default class Pull extends CommandsWithInitCheck {
     );
   }
 
-
   private async getStatusResult(targetOrg: string) {
     let statusResult;
-    let resultJson = child_process.execSync(
-      `sfdx force:source:status -u ${targetOrg} --json`,
-      {
-        encoding: "utf8",
-        stdio: "pipe",
-        maxBuffer: 1024 * 1024 * 5
-      }
-    );
+    let result;
+    try {
+      cli.action.start(`  Checking for changes in  dev org ${targetOrg}..`);
+      result = await new SourceStatus(targetOrg).exec(true);
+      cli.action.stop();
+    } catch (error) {
+      cli.action.stop();
+      return "Missing DevOrg";
+    }
 
-    let result = JSON.parse(resultJson);
-
-    const conflicts = result.result.filter((elem) =>
+    const conflicts = result.filter((elem) =>
       elem.state.endsWith("(Conflict)")
     );
 
@@ -306,23 +336,24 @@ export default class Pull extends CommandsWithInitCheck {
       await this.conflictsHandler(conflicts);
     }
 
-    statusResult = result.result.filter(
-      (elem) =>
-        !elem.state.startsWith("Local")
-    ).map((elem) => {
-      elem.state = elem.state.replace(/\(Conflict\)$/, "");
-      return elem;
-    })
+    statusResult = result
+      .filter((elem) => !elem.state.startsWith("Local"))
+      .map((elem) => {
+        elem.state = elem.state.replace(/\(Conflict\)$/, "");
+        return elem;
+      });
 
     this.printStatus(statusResult);
-
 
     return statusResult;
   }
 
   private async conflictsHandler(conflicts: any) {
     this.printStatus(conflicts);
-    SFPlogger.log("Source conflict(s) detected. Verify that you want to keep the remote versions", LoggerLevel.WARN);
+    SFPlogger.log(
+      "Source conflict(s) detected. Verify that you want to keep the remote versions",
+      LoggerLevel.WARN
+    );
     const getConfirmationForOverwrite = await inquirer.prompt([
       {
         type: "input",
@@ -332,9 +363,7 @@ export default class Pull extends CommandsWithInitCheck {
     ]);
 
     if (getConfirmationForOverwrite.overwrite !== "force") {
-      throw new Error(
-        "Source conflict(s) detected. Abandoning..."
-      );
+      throw new Error("Source conflict(s) detected. Abandoning...");
     }
   }
 
@@ -351,8 +380,7 @@ export default class Pull extends CommandsWithInitCheck {
         elem.filePath ? elem.filePath : "N/A",
       ]);
     });
-
-    console.log(table.toString());
+    if (statusResult.length > 0) console.log(table.toString());
   }
 
   private writeProjectConfigToFile(projectConfig: any) {
