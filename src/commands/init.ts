@@ -32,6 +32,7 @@ export default class Init extends SfpCommand {
 
 
 
+
   async exec() {
 
     //TODO: check for DX@Scale project
@@ -81,6 +82,7 @@ export default class Init extends SfpCommand {
       }
     }
 
+    fs.mkdirpSync(this.config.configDir);
 
 
     //TODO: Check for Repo Providers CLI Installed
@@ -179,8 +181,4 @@ export default class Init extends SfpCommand {
 
     return defaultBranchPrompt.branch;
   }
-
-
-
-
 }
