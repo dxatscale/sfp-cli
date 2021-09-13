@@ -42,7 +42,7 @@ export default class Workon extends CommandsWithInitCheck {
   static args = [{ name: "caller" }, { name: "mode" }];
   orgList: any;
   workItem: WorkItem;
-  sfpProjectConfig: SfpProjectConfig = {};
+  sfpProjectConfig: SfpProjectConfig;
 
   async executeCommand() {
 

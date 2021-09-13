@@ -89,6 +89,7 @@ export default class Init extends SfpCommand {
 
     fs.mkdirpSync(this.config.configDir);
 
+    this.sfpProjectConfig.name = this.projectName;
 
     fs.writeFileSync(
       path.join(this.config.configDir, `${this.projectName}.json`),

@@ -17,10 +17,26 @@ export class SfpProjectConfig {
     } else return undefined;
   }
 
-  static toInstance<T>(obj: T, jsonObj: any): T {
+  /**
+   * De-serialize JSON object into SfpProjectConfig
+   * @param jsonObj
+   * @returns
+   */
+  static toInstance(jsonObj: any): SfpProjectConfig {
+    if (typeof jsonObj !== "object" ) throw new Error("toInstance takes an object as an input");
+
+    const sfpProjectConfig = new SfpProjectConfig();
     for (var propName in jsonObj) {
-      obj[propName] = jsonObj[propName];
+      sfpProjectConfig[propName] = jsonObj[propName];
     }
-    return obj;
+    return sfpProjectConfig;
+  }
+
+  /**
+   * Checks whether instance of SfpProjectConfig is valid
+   * @returns
+   */
+  public static isValid(sfpProjectConfig: SfpProjectConfig): boolean {
+    return !!sfpProjectConfig.name;
   }
 }
