@@ -1,4 +1,4 @@
-import {flags} from '@oclif/command'
+import { flags } from "@oclif/command";
 import inquirer = require("inquirer");
 inquirer.registerPrompt(
   "autocomplete",
@@ -16,13 +16,14 @@ import PromptToPickAnOrg from "../prompts/PromptToPickAnOrg";
 import PoolListImpl from "../impl/pool/PoolListImpl";
 import { isEmpty } from "lodash";
 import ScratchOrg from "@dxatscale/sfpowerscripts.core/lib/scratchorg/ScratchOrg";
-import SfpCommand from '../SfpCommand';
+import SfpCommand from "../SfpCommand";
 import * as fs from "fs-extra";
-import { Org } from '@salesforce/core';
+import { Org } from "@salesforce/core";
 import path = require("path");
+import RepoProviderSelector from "../impl/repoprovider/RepoProviderSelector";
 
 export default class Init extends SfpCommand {
-  static description = 'Intializes the project with various defaults'
+  static description = "Intializes the project with various defaults";
 
   static flags = {
     help: flags.help({ char: "h" }),
@@ -30,10 +31,7 @@ export default class Init extends SfpCommand {
 
   static args = [{ name: "caller" }, { name: "mode" }];
 
-
-
   async exec() {
-
     //TODO: check for DX@Scale project
 
     this.sfpProjectConfig.defaultBranch = await this.promptForDefaultBranch();
@@ -81,11 +79,20 @@ export default class Init extends SfpCommand {
       }
     }
 
+    this.sfpProjectConfig.repoProvider = await this.promptForRepoProvider();
+    if (this.sfpProjectConfig.repoProvider != "other") {
+      let repoProvider = RepoProviderSelector.getRepoProvider(
+        this.sfpProjectConfig.repoProvider
+      );
+      let isCLIInstalled = await repoProvider.isCLIInstalled();
+      if (isCLIInstalled) {
+        await repoProvider.authenticate();
+      } else {
+        console.log(repoProvider.getInstallationMessage(this.config.platform));
+      }
+    }
 
-
-    //TODO: Check for Repo Providers CLI Installed
     //TODO: Check for existence of SFDX and Plugins
-
 
     fs.mkdirpSync(this.config.configDir);
 
@@ -179,5 +186,19 @@ export default class Init extends SfpCommand {
     ]);
 
     return defaultBranchPrompt.branch;
+  }
+
+  private async promptForRepoProvider(): Promise<string> {
+    const repoProviderPrompt = await inquirer.prompt([
+      {
+        type: "list",
+        name: "repoprovider",
+        message: "Select a repository provider for this project",
+        choices: ["github", "azure repo", "gitlab", "other"],
+        default: "github",
+      },
+    ]);
+
+    return repoProviderPrompt.repoprovider;
   }
 }
