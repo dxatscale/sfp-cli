@@ -1,24 +1,63 @@
+import ExecuteCommand from "@dxatscale/sfpowerscripts.core/lib/command/commandExecutor/ExecuteCommand";
+import {
+  COLOR_KEY_MESSAGE,
+  COLOR_KEY_VALUE,
+} from "@dxatscale/sfpowerscripts.core/lib/logger/SFPLogger";
 import { WorkItem } from "../../types/WorkItem";
 import { RepoProvider } from "./RepoProvider";
+import child_process = require("child_process");
 
-export default class AzureDevOps implements RepoProvider
-{
+export default class AzureDevOps implements RepoProvider {
+  _isCLIInstalled: boolean;
 
   name(): string {
-    return "azure repo"
+    return "azure repo";
   }
 
-  isCLIInstalled(): Promise<boolean> {
-    throw new Error("Method not implemented.");
+  public async isCLIInstalled(): Promise<boolean> {
+    let executor: ExecuteCommand = new ExecuteCommand();
+    let result = (await executor.execCommand(
+      "az version",
+      process.cwd()
+    )) as string;
+    if (result.includes("azure-devops")) {
+      this._isCLIInstalled = true;
+      return true;
+    } else return false;
   }
   getInstallationMessage(platform: string): string {
-    throw new Error("Method not implemented.");
+    if (platform === "darwin")
+      return COLOR_KEY_MESSAGE(
+        ` Please install using ${COLOR_KEY_VALUE(
+          `brew install az  and then az extension add --name azure-devops`
+        )} `
+      );
+    else if (platform === "win32")
+      return COLOR_KEY_MESSAGE(
+        `  Please install using ${COLOR_KEY_VALUE(
+          `https://aka.ms/installazurecliwindows and  then  az extension add --name azure-devops`
+        )} `
+      );
+    else
+      return COLOR_KEY_MESSAGE(
+        ` Please follow instruction at  https://docs.microsoft.com/en-us/cli/azure/install-azure-cli`
+      );
   }
-  raiseAPullRequest(workItem: WorkItem) {
-    throw new Error("Method not implemented.");
-  }
-  authenticate() {
-    throw new Error("Method not implemented.");
+  public async raiseAPullRequest(workItem: WorkItem) {
+    let pullRequestCommand = ` az repos pr create --target-branch ${workItem.trackingBranch} --open --draft`;
+    let executor: ExecuteCommand = new ExecuteCommand();
+    let result = (await executor.execCommand(
+      pullRequestCommand,
+      process.cwd()
+    )) as string;
+    console.log(result);
   }
 
+  authenticate() {
+    let pullRequestCommand = ` az devops login`;
+    child_process.execSync(pullRequestCommand, {
+      encoding: "utf8",
+      stdio: "inherit",
+    });
+  }
 }

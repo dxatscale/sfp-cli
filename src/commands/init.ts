@@ -88,6 +88,9 @@ export default class Init extends SfpCommand {
       if (isCLIInstalled) {
         await repoProvider.authenticate();
       } else {
+        console.log(COLOR_WARNING(` Missing ${this.sfpProjectConfig.repoProvider} CLI`));
+        console.log(COLOR_KEY_MESSAGE(` Installing ${this.sfpProjectConfig.repoProvider} CLI allows you to automate further. \nPlease read the instructions below`));
+
         console.log(repoProvider.getInstallationMessage(this.config.platform));
       }
     }

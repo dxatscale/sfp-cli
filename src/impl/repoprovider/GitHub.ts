@@ -32,25 +32,25 @@ export default class GitHub implements RepoProvider {
   public getInstallationMessage(platform: string): string {
     if (platform === "darwin")
       return COLOR_KEY_MESSAGE(
-        ` GitHub CLI is missing, Please install using ${COLOR_KEY_VALUE(
+        ` Please install using ${COLOR_KEY_VALUE(
           `brew install gh`
         )} `
       );
     else if (platform === "win32")
       return COLOR_KEY_MESSAGE(
-        ` GitHub CLI is missing, Please install using ${COLOR_KEY_VALUE(
+        `  Please install using ${COLOR_KEY_VALUE(
           `winget install gh`
         )} `
       );
     else
       return COLOR_KEY_MESSAGE(
-        ` GitHub CLI is missing, Please follow instruction at  https://github.com/cli/cli#installation`
+        ` Please follow instruction at  https://github.com/cli/cli#installation`
       );
   }
 
   public async raiseAPullRequest(workItem:WorkItem)
   {
-    let pullRequestCommand = ` gh pr create --base ${workItem.trackingBranch} --fill`;
+    let pullRequestCommand = ` gh pr create --base ${workItem.trackingBranch} --fill --draft`;
     let executor: ExecuteCommand = new ExecuteCommand();
     let result = (await executor.execCommand(
      pullRequestCommand,
@@ -64,7 +64,6 @@ export default class GitHub implements RepoProvider {
   public async authenticate()
   {
     let pullRequestCommand = ` gh auth login`;
-    let executor: ExecuteCommand = new ExecuteCommand();
     child_process.execSync(pullRequestCommand, {
       encoding: "utf8",
       stdio: "inherit",
