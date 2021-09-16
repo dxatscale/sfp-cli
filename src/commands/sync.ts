@@ -1,6 +1,6 @@
 import {flags} from '@oclif/command'
 import inquirer = require('inquirer')
-import SFPLogger, { LoggerLevel, ConsoleLogger } from "@dxatscale/sfpowerscripts.core/lib/logger/SFPLogger";
+import SFPLogger, { LoggerLevel, ConsoleLogger, COLOR_KEY_MESSAGE } from "@dxatscale/sfpowerscripts.core/lib/logger/SFPLogger";
 import PushErrorDisplayer from "@dxatscale/sfpowerscripts.core/lib/display/PushErrorDisplayer";
 import Pull from './pull';
 import CommandsWithInitCheck from '../sharedCommandBase/CommandsWithInitCheck';
@@ -8,6 +8,7 @@ import simpleGit, { SimpleGit } from "simple-git";
 import SourcePush from "../impl/sfdxwrappers/SourcePush";
 import PromptToPickAnOrg from '../prompts/PromptToPickAnOrg';
 import SourceStatus from "../impl/sfdxwrappers/SourceStatus";
+import cli from "cli-ux";
 
 export default class Sync extends CommandsWithInitCheck {
   static description = 'sync changes effortlessly either with repository or development environment'
@@ -54,12 +55,21 @@ export default class Sync extends CommandsWithInitCheck {
       let args=new Array<string>();
       args.push("inner");
 
-      const devOrg = await new PromptToPickAnOrg().promptForDevOrgSelection();
+      const git: SimpleGit = simpleGit();
+      let branches = await git.branch();
+      let id = branches.current.split("/").pop();
+
+      //Split BranchName by "/" to get workItem id
+
+
+      const devOrg = await new PromptToPickAnOrg({alias:id}).promptForDevOrgSelection();
 
       args.push(devOrg);
 
       // Determine direction
+      cli.action.start("  Analyzing Changes");
       const sourceStatusResult = await new SourceStatus(devOrg).exec(true);
+      cli.action.stop();
 
       let isLocalChanges: boolean = false;
       let isRemoteChanges: boolean = false;
@@ -123,7 +133,12 @@ export default class Sync extends CommandsWithInitCheck {
         let pull:Pull = new Pull(args,this.config);
         await pull.run();
       }
+      else
+      {
+       SFPLogger.log(`  ${COLOR_KEY_MESSAGE(`No Changes Detected... `)}`);
+      }
     }
+
 
   }
 
