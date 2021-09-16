@@ -178,7 +178,7 @@ export default class Workon extends CommandsWithInitCheck {
             );
             console.log(
               COLOR_KEY_MESSAGE(
-                `Switched to branch ${branchName}..utilize 'sfp sync ${this.workItem.id}' to operate this environment`
+                `Switched to branch ${branchName}..utilize 'sfp sync' to proceed further`
               )
             );
           } else {
