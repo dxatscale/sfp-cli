@@ -28,6 +28,7 @@ import path = require("path");
 import { WorkItem } from "../types/WorkItem";
 import { SfpProjectConfig } from "../types/SfpProjectConfig";
 import CommandsWithInitCheck from "../sharedCommandBase/CommandsWithInitCheck";
+import CreateScratchOrgImpl from "@dxatscale/sfpowerscripts.core/lib/sfdxwrappers/CreateScratchOrgImpl"
 
 export default class Workon extends CommandsWithInitCheck {
   static description = "Interactive command to initiate a new work item using the DX@Scale flow";
@@ -141,7 +142,7 @@ export default class Workon extends CommandsWithInitCheck {
 
         let type = await this.promptForOrgTypeSelection();
 
-        if (type === "pool") {
+        if (type === OrgType.POOL) {
           // Now Fetch All Pools in that devhub
           const hubOrg = await Org.create({ aliasOrUsername: devHubUserName });
           let scratchOrgsInDevHub = await new PoolListImpl(
@@ -184,10 +185,27 @@ export default class Workon extends CommandsWithInitCheck {
             let isDevEnvironmentCreationRequested =
               await this.promptForCreatingDevEnvironmentIfPoolEmpty();
             if (isDevEnvironmentCreationRequested)
-              await this.createOrg(this.workItem.id, "so");
+             {
+              await this.createOrg(this.workItem, this.sfpProjectConfig, OrgType.SCRATCHORG);
+             }
           }
-        } else {
-          await this.createOrg(this.workItem.id, type);
+        }
+        else if (type===OrgType.SCRATCHORG)
+        {
+          let isDevEnvironmentCreationRequested =
+          await this.promptForCreatingScratchOrg();
+        if (isDevEnvironmentCreationRequested)
+         {
+          await this.createOrg(this.workItem, this.sfpProjectConfig, OrgType.SCRATCHORG);
+         }
+        }
+        else {
+          let isDevEnvironmentCreationRequested =
+          await this.promptForCreatingSandbox();
+        if (isDevEnvironmentCreationRequested)
+         {
+          await this.createOrg(this.workItem, this.sfpProjectConfig, OrgType.SANDBOX);
+         }
         }
       } catch (error) {
         throw error(`Unable to process request at this time `, error);
@@ -329,11 +347,37 @@ export default class Workon extends CommandsWithInitCheck {
         type: "confirm",
         name: "create",
         message:
-          "No scratch orgs available in pool, Create an new scratch org (This would take a considerable time)?",
+          "No scratch orgs available in pool, Create a new scratch org (This would take a considerable time)?",
       },
     ]);
     return isCreateDevEnvironmentRequiredPrompt.create;
   }
+
+
+  private async promptForCreatingScratchOrg(): Promise<boolean> {
+    const isCreateScratchOrg = await inquirer.prompt([
+      {
+        type: "confirm",
+        name: "create",
+        message:
+          "Create a new scratch org (This would take a considerable time)?",
+      },
+    ]);
+    return isCreateScratchOrg.create;
+  }
+
+  private async promptForCreatingSandbox(): Promise<boolean> {
+    const isCreateSandbox = await inquirer.prompt([
+      {
+        type: "confirm",
+        name: "create",
+        message:
+          "Create a new sandbox (This would take a considerable time)?",
+      },
+    ]);
+    return isCreateSandbox.create;
+  }
+
 
   private async promptForPoolSelection(
     pools: Array<any>,
@@ -352,16 +396,16 @@ export default class Workon extends CommandsWithInitCheck {
     return pool.tag;
   }
 
-  private async promptForOrgTypeSelection(): Promise<string> {
+  private async promptForOrgTypeSelection(): Promise<OrgType> {
     const orgType = await inquirer.prompt([
       {
         type: "list",
         name: "type",
         message: "Select a type of dev environment",
         choices: [
-          { name: "Fetch a scratchorg from pool", value: "pool" },
-          { name: "Create a scratchorg", value: "so" },
-          { name: "Create a dev sandbox", value: "sb" },
+          { name: "Fetch a scratchorg from pool", value: OrgType.POOL },
+          { name: "Create a scratchorg", value: OrgType.SCRATCHORG },
+          { name: "Create a dev sandbox", value: OrgType.SANDBOX },
         ],
       },
     ]);
@@ -432,7 +476,19 @@ export default class Workon extends CommandsWithInitCheck {
     return poolFetchImpl.execute();
   }
 
-  private async createOrg(alias: string, type: string) {}
+  private async createOrg(workItem:WorkItem, sfpProjectConfig:SfpProjectConfig, type: OrgType) {
+      cli.action.start(` Creating Org...`);
+       switch(type)
+       {
+         case OrgType.SCRATCHORG:
+               let creator:CreateScratchOrgImpl = new CreateScratchOrgImpl(null,"config/project-scratch-def.json",sfpProjectConfig.defaultDevHub,workItem.id,10);
+               let result = await creator.exec(true);
+               console.log(COLOR_KEY_MESSAGE(`  Successfully created a scratchorg for WorkItem ${workItem.id}`))
+               this.workItem.defaultDevOrg = result.username;
+               break;
+       }
+       cli.action.stop();
+  }
 
   private getPoolTags(result: ScratchOrg[]) {
     let availableSo = [];
@@ -469,4 +525,13 @@ export default class Workon extends CommandsWithInitCheck {
       this.sfpProjectConfig.workItems[key].isActive = false;
     }
   }
+
+
 }
+
+enum OrgType
+  {
+    POOL=1,
+    SCRATCHORG=2,
+    SANDBOX=3
+  }
