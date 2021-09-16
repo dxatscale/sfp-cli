@@ -19,7 +19,7 @@ $ npm install -g @dxatscale/sfp-cli
 $ sfp COMMAND
 running command...
 $ sfp (-v|--version|version)
-@dxatscale/sfp-cli/0.0.14 darwin-x64 node-v14.16.1
+@dxatscale/sfp-cli/0.0.16 darwin-x64 node-v14.16.1
 $ sfp --help [COMMAND]
 USAGE
   $ sfp COMMAND
@@ -52,7 +52,7 @@ _See code: [@oclif/plugin-help](https://github.com/oclif/plugin-help/blob/v3.2.3
 
 ## `sfp init [CALLER] [MODE]`
 
-describe the command here
+Intializes the project with various defaults
 
 ```
 USAGE
@@ -62,7 +62,7 @@ OPTIONS
   -h, --help  show CLI help
 ```
 
-_See code: [src/commands/init.ts](https://github.com/dxatscale/sfp-cli/blob/v0.0.14/src/commands/init.ts)_
+_See code: [src/commands/init.ts](https://github.com/dxatscale/sfp-cli/blob/v0.0.16/src/commands/init.ts)_
 
 ## `sfp sync [FILE]`
 
@@ -76,7 +76,7 @@ OPTIONS
   -h, --help  show CLI help
 ```
 
-_See code: [src/commands/sync.ts](https://github.com/dxatscale/sfp-cli/blob/v0.0.14/src/commands/sync.ts)_
+_See code: [src/commands/sync.ts](https://github.com/dxatscale/sfp-cli/blob/v0.0.16/src/commands/sync.ts)_
 
 ## `sfp work [FILE]`
 
@@ -90,5 +90,5 @@ OPTIONS
   -h, --help  show CLI help
 ```
 
-_See code: [src/commands/work.ts](https://github.com/dxatscale/sfp-cli/blob/v0.0.14/src/commands/work.ts)_
+_See code: [src/commands/work.ts](https://github.com/dxatscale/sfp-cli/blob/v0.0.16/src/commands/work.ts)_
 <!-- commandsstop -->
