@@ -35,32 +35,37 @@ export default class Pull extends CommandsWithInitCheck {
     help: flags.help({ char: "h" }),
   };
 
-  static args = [{ name: "caller" }];
+  static args = [{ name: "caller" }, { name: "devOrg"} ];
   // private readonly registry: MetadataRegistry = defaultRegistry;
 
   static hidden = true;
 
   async executeCommand() {
-
-    //Intitialize Git
-    const git: SimpleGit = simpleGit();
-    let currentBranch = (await git.branch()).current;
-
-    //Prompt to Pick a dev Org only if the devOrg is not available
-    let workItem = this.sfpProjectConfig.getWorkItemGivenBranch(currentBranch);
     let statusResult;
-    let devOrg=workItem.defaultDevOrg;
-
-    if (workItem.defaultDevOrg) {
-      statusResult = await this.getStatusResult(workItem.defaultDevOrg);
-    }
-    if (
-      statusResult === "Missing DevOrg" ||
-      workItem.defaultDevOrg === undefined
-    ) {
-      console.log(COLOR_WARNING("  Unable to find the assigned org for this work item"));
-      devOrg = await new PromptToPickAnOrg().promptForDevOrgSelection();
+    let devOrg: string;
+    if (this.args.caller === "inner") {
+      devOrg = this.args.devOrg;
       statusResult = await this.getStatusResult(devOrg);
+    } else {
+      //Intitialize Git
+      const git: SimpleGit = simpleGit();
+      let currentBranch = (await git.branch()).current;
+
+      //Prompt to Pick a dev Org only if the devOrg is not available
+      let workItem = this.sfpProjectConfig.getWorkItemGivenBranch(currentBranch);
+      devOrg = workItem.defaultDevOrg;
+
+      if (workItem.defaultDevOrg) {
+        statusResult = await this.getStatusResult(workItem.defaultDevOrg);
+      }
+      if (
+        statusResult === "Missing DevOrg" ||
+        workItem.defaultDevOrg === undefined
+      ) {
+        console.log(COLOR_WARNING("  Unable to find the assigned org for this work item"));
+        devOrg = await new PromptToPickAnOrg().promptForDevOrgSelection();
+        statusResult = await this.getStatusResult(devOrg);
+      }
     }
 
     if (statusResult.length === 0) {
@@ -358,7 +363,7 @@ export default class Pull extends CommandsWithInitCheck {
       {
         type: "input",
         name: "overwrite",
-        message: "To forcibly overwrite local/remote changes, type force"
+        message: "To forcibly overwrite local changes, type force"
       }
     ]);
 

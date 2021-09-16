@@ -38,6 +38,9 @@ Using sfdx cli in terminal is often verbose and needs to remember an exact seque
 **sfp sync**
 
   - Sync to/from Git ( you are not on the default  branch!!!, your branch could be shared by two devs) <-- main to local & push local
+    - Pull from remote tracking branch
+    - Pull from parent branch
+    - Prompt for push to remote tracking branch
   - Sync to/from Org ( push/pull to the org)
   - Sort medatata into packages by utilizing dx@scale's recommended repo structure
   - Improve recommendations using dynamic dependency (future)
