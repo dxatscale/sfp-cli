@@ -4,7 +4,7 @@ import inquirer = require("inquirer");
 import cli from "cli-ux";
 import { convertAliasToUsername } from "@dxatscale/sfpowerscripts.core/lib/utils/AliasList"
 
-export default class PromptToPickAnOrg {
+export default class PickAnOrg {
   private orgList: any;
 
 
@@ -61,7 +61,22 @@ export default class PromptToPickAnOrg {
     }
   }
 
-  public async promptForDevHubSelection(): Promise<string> {
+  private getListOfAllOrgs(): Array<{name:string,alias:string,value:string}> {
+
+      let orgList = new Array<{name:string,alias:string,value:string}>();
+      this.orgList.scratchOrgs.map((element) => {
+        orgList.push({name:`${element.username} - ${element.alias}`,alias:element.alias,value:element.username});
+      });
+
+      let nonScratchOrgs = this.orgList.nonScratchOrgs;
+
+      nonScratchOrgs.map((element) => {
+        orgList.push({name:`${element.username} - ${element.alias}`,alias:element.alias,value:element.username});
+      });
+      return orgList;
+  }
+
+  public async getADevHub(): Promise<string> {
     await this.fetchOrgs();
 
 
@@ -80,7 +95,7 @@ export default class PromptToPickAnOrg {
     return devhub.username;
   }
 
-  public async promptForDevOrgSelection(): Promise<string> {
+  public async getADevOrg(): Promise<string> {
     await this.fetchOrgs();
 
     let devOrgList = this.getListOfDevOrgs();
@@ -99,6 +114,22 @@ export default class PromptToPickAnOrg {
     return devOrg.username;
   }
 
+  public async getAnyOrg(): Promise<string> {
+    await this.fetchOrgs();
+
+    let allOrgList = this.getListOfAllOrgs();
+
+    const devOrg = await inquirer.prompt([
+      {
+        type: "list",
+        name: "username",
+        message: "Pick a  Org",
+        choices:  allOrgList,
+      },
+    ]);
+
+    return devOrg.username;
+  }
 
 
   private async fetchOrgs() {

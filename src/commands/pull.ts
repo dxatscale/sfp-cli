@@ -17,13 +17,16 @@ import SFPlogger, {
   COLOR_WARNING,
   LoggerLevel,
 } from "@dxatscale/sfpowerscripts.core/lib/logger/SFPLogger";
-import PromptToPickAnOrg from "../prompts/PromptToPickAnOrg";
-import PackagePrompt from "../prompts/PackagePrompt";
+import PickAnOrg from "../workflows/PickAnOrg";
+import CreatePackage from "../workflows/CreatePackage";
 import simpleGit, { SimpleGit } from "simple-git";
 import CommandsWithInitCheck from "../sharedCommandBase/CommandsWithInitCheck";
 import SourceStatus from "../impl/sfdxwrappers/SourceStatus";
 import cli from "cli-ux";
 import SourcePull from "../impl/sfdxwrappers/SourcePull";
+import SelectPackage from "../workflows/SelectPackage";
+import SFPLogger from "@dxatscale/sfpowerscripts.core/lib/logger/SFPLogger";
+import { isEmpty } from "lodash";
 
 export default class Pull extends CommandsWithInitCheck {
   static description =
@@ -35,7 +38,7 @@ export default class Pull extends CommandsWithInitCheck {
     help: flags.help({ char: "h" }),
   };
 
-  static args = [{ name: "caller" }, { name: "devOrg"} ];
+  static args = [{ name: "caller" }, { name: "devOrg" }];
   // private readonly registry: MetadataRegistry = defaultRegistry;
 
   static hidden = true;
@@ -52,7 +55,8 @@ export default class Pull extends CommandsWithInitCheck {
       let currentBranch = (await git.branch()).current;
 
       //Prompt to Pick a dev Org only if the devOrg is not available
-      let workItem = this.sfpProjectConfig.getWorkItemGivenBranch(currentBranch);
+      let workItem =
+        this.sfpProjectConfig.getWorkItemGivenBranch(currentBranch);
       devOrg = workItem.defaultDevOrg;
 
       if (workItem.defaultDevOrg) {
@@ -62,14 +66,16 @@ export default class Pull extends CommandsWithInitCheck {
         statusResult === "Missing DevOrg" ||
         workItem.defaultDevOrg === undefined
       ) {
-        console.log(COLOR_WARNING("  Unable to find the assigned org for this work item"));
-        devOrg = await new PromptToPickAnOrg().promptForDevOrgSelection();
+        SFPLogger.log(
+          COLOR_WARNING("  Unable to find the assigned org for this work item")
+        );
+        devOrg = await new PickAnOrg().getADevOrg();
         statusResult = await this.getStatusResult(devOrg);
       }
     }
 
     if (statusResult.length === 0) {
-      console.log(COLOR_SUCCESS("  No changes found"));
+      SFPLogger.log(COLOR_SUCCESS("  No changes found"));
       return;
     }
 
@@ -77,8 +83,10 @@ export default class Pull extends CommandsWithInitCheck {
       (elem) => elem.state === "Remote Add"
     );
 
-    console.log(
-     COLOR_KEY_MESSAGE(`  Found ${remoteAdditions.length} new metadata components, which require a new home`)
+    SFPLogger.log(
+      COLOR_KEY_MESSAGE(
+        `  Found ${remoteAdditions.length} new metadata components, which require a new home`
+      )
     );
 
     const projectConfig = ProjectConfig.getSFDXPackageManifest(null);
@@ -86,7 +94,7 @@ export default class Pull extends CommandsWithInitCheck {
 
     let mergePlan: Instruction[] = [];
     for (let remoteAddition of remoteAdditions) {
-      console.log();
+
       const instruction: Instruction = {
         fullName: remoteAddition.fullName,
         type: remoteAddition.type,
@@ -106,14 +114,14 @@ export default class Pull extends CommandsWithInitCheck {
 
           const plusOneMoveAction = await this.getPlusOneMoveAction();
           if (plusOneMoveAction === MoveAction.EXISTING) {
-            let existingPackage = await new PackagePrompt(
+            let existingPackage = await new SelectPackage(
               projectConfig
-            ).promptForExistingPackage();
+            ).pickAnExistingPackage();
             instruction.destination.push({ package: existingPackage.path });
           } else if (plusOneMoveAction === MoveAction.NEW) {
-            const newPackage = await new PackagePrompt(
+            const newPackage = await new CreatePackage(
               projectConfig
-            ).promptForNewPackage();
+            ).createNewPackage();
             this.addNewPackageToProjectConfig(
               newPackage.descriptor,
               newPackage.indexOfPackage,
@@ -153,9 +161,9 @@ export default class Pull extends CommandsWithInitCheck {
           throw new Error("Strategy not defined or unknown");
         }
       } else if (moveAction === MoveAction.NEW) {
-        const newPackage = await new PackagePrompt(
+        const newPackage = await new CreatePackage(
           projectConfig
-        ).promptForNewPackage();
+        ).createNewPackage();
         this.addNewPackageToProjectConfig(
           newPackage.descriptor,
           newPackage.indexOfPackage,
@@ -164,9 +172,9 @@ export default class Pull extends CommandsWithInitCheck {
         newPackagesDirectories.push(newPackage.descriptor.path);
         instruction.destination.push({ package: newPackage.descriptor.path });
       } else if (moveAction === MoveAction.EXISTING) {
-        let existingPackage = await new PackagePrompt(
+        let existingPackage = await new SelectPackage(
           projectConfig
-        ).promptForExistingPackage();
+        ).pickAnExistingPackage();
         instruction.destination.push({ package: existingPackage.path });
       } else if (moveAction === MoveAction.NOTHING) {
         continue;
@@ -180,25 +188,29 @@ export default class Pull extends CommandsWithInitCheck {
     this.writeProjectConfigToFile(projectConfig);
 
     cli.action.start(`  Pulling source components from dev org... ${devOrg}..`);
-    let pullResult = await new SourcePull(devOrg,true).exec(true);
+    let pullResult = await (new SourcePull(devOrg, true)).exec(true);
     cli.action.stop();
-    console.log(COLOR_SUCCESS("  Successfully pulled source components"));
+    SFPLogger.log(COLOR_SUCCESS("  Successfully pulled source components"));
 
-    console.log("  \nMoving source components...");
+    SFPLogger.log("  \nMoving source components...");
 
     for (let instruction of mergePlan) {
       let components = pullResult.pulledSource.filter(
         (component) =>
-          component.fullName === instruction.fullName &&
+          component.fullName === this.encodeData(instruction.fullName) &&
           component.type === instruction.type
       );
+
+      if(isEmpty(components))
+       continue;
 
       const converter = new MetadataConverter();
       const componentSet = ComponentSet.fromSource(
         components.find(
           (component) => path.extname(component.filePath) === ".xml"
-        ).filePath
+        )?.filePath
       );
+
 
       for (let dest of instruction.destination) {
         if (dest.aliasfy) {
@@ -220,6 +232,32 @@ export default class Pull extends CommandsWithInitCheck {
             });
           }
         } else {
+
+
+
+          console.log("----------")
+          console.log("XX:"+instruction.fullName);
+          console.log("XX:"+dest.package);
+          console.log("YY:"+JSON.stringify(componentSet));
+          let result = await (componentSet.getSourceComponents()).toArray();
+          let result2 = ComponentSet.fromSource(
+            path.resolve(dest.package)
+          ).getSourceComponents().toArray();
+
+          console.log("AA:"+JSON.stringify(result));
+          console.log("----------")
+
+          console.log("CC:"+JSON.stringify(result2));
+          console.log("BB:"+JSON.stringify(result2));
+          console.log("----------")
+
+
+          await inquirer.prompt({
+            type: "confirm",
+            name: "action",
+            message: `Proceed`,
+          });
+
           await converter.convert(componentSet, "source", {
             type: "merge",
             mergeWith: ComponentSet.fromSource(
@@ -229,6 +267,8 @@ export default class Pull extends CommandsWithInitCheck {
             forceIgnoredPaths:
               componentSet.forceIgnoredPaths ?? new Set<string>(),
           });
+
+
         }
       }
 
@@ -237,7 +277,7 @@ export default class Pull extends CommandsWithInitCheck {
       }
     }
 
-    console.log(COLOR_SUCCESS("  Successfully moved source components"));
+    SFPLogger.log(COLOR_SUCCESS("  Successfully moved source components"));
   }
 
   private async getMoveAction(instruction: Instruction) {
@@ -363,8 +403,8 @@ export default class Pull extends CommandsWithInitCheck {
       {
         type: "input",
         name: "overwrite",
-        message: "To forcibly overwrite local changes, type force"
-      }
+        message: "To forcibly overwrite local changes, type force",
+      },
     ]);
 
     if (getConfirmationForOverwrite.overwrite !== "force") {
@@ -385,11 +425,15 @@ export default class Pull extends CommandsWithInitCheck {
         elem.filePath ? elem.filePath : "N/A",
       ]);
     });
-    if (statusResult.length > 0) console.log(table.toString());
+    if (statusResult.length > 0) SFPLogger.log(table.toString());
   }
 
   private writeProjectConfigToFile(projectConfig: any) {
     fs.writeJSONSync("sfdx-project.json", projectConfig, { spaces: 2 });
+  }
+
+  private encodeData(s:String):String{
+    return s.replace(/\(/g, "%28").replace(/\)/g, "%29");
   }
 }
 

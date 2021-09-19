@@ -1,5 +1,5 @@
 import ExecuteCommand from "@dxatscale/sfpowerscripts.core/lib/command/commandExecutor/ExecuteCommand";
-import {
+import SFPLogger, {
   COLOR_KEY_MESSAGE,
   COLOR_KEY_VALUE,
 } from "@dxatscale/sfpowerscripts.core/lib/logger/SFPLogger";
@@ -50,7 +50,7 @@ export default class AzureDevOps implements RepoProvider {
       pullRequestCommand,
       process.cwd()
     )) as string;
-    console.log(result);
+    SFPLogger.log(result);
   }
 
   authenticate() {

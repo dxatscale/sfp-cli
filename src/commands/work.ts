@@ -46,7 +46,8 @@ export default class WorkItem extends CommandsWithInitCheck {
         choices: [
           "Work on a new item",
           "Switch to an existing work item",
-          "Submit a work item"
+          "Submit a work item",
+          "Delete a work item"
         ],
         default: "Work on a new item "
       },

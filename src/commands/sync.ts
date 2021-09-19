@@ -6,9 +6,10 @@ import Pull from './pull';
 import CommandsWithInitCheck from '../sharedCommandBase/CommandsWithInitCheck';
 import simpleGit, { SimpleGit } from "simple-git";
 import SourcePush from "../impl/sfdxwrappers/SourcePush";
-import PromptToPickAnOrg from '../prompts/PromptToPickAnOrg';
+import PickAnOrg from '../workflows/PickAnOrg';
 import SourceStatus from "../impl/sfdxwrappers/SourceStatus";
 import cli from "cli-ux";
+import { WorkItem } from '../types/WorkItem';
 
 export default class Sync extends CommandsWithInitCheck {
   static description = 'sync changes effortlessly either with repository or development environment'
@@ -17,6 +18,7 @@ export default class Sync extends CommandsWithInitCheck {
     help: flags.help({char: 'h'})
   }
   static args = [{name: 'file'}]
+  workItem: WorkItem;
 
   async executeCommand() {
 
@@ -57,15 +59,16 @@ export default class Sync extends CommandsWithInitCheck {
 
       const git: SimpleGit = simpleGit();
       let branches = await git.branch();
-      let id = branches.current.split("/").pop();
+      this.workItem = this.sfpProjectConfig.getWorkItemGivenBranch(branches.current);
 
-      //Split BranchName by "/" to get workItem id
-
-
-      const devOrg = await new PromptToPickAnOrg({alias:id}).promptForDevOrgSelection();
+      //Only select org if there is no org available
+      let devOrg=this.workItem.defaultDevOrg;
+      if(!this.workItem?.defaultDevOrg)
+      {
+      devOrg = await new PickAnOrg({username:this.workItem.defaultDevOrg}).getADevOrg();
+      }
 
       args.push(devOrg);
-
       // Determine direction
       cli.action.start("  Analyzing Changes");
       const sourceStatusResult = await new SourceStatus(devOrg).exec(true);

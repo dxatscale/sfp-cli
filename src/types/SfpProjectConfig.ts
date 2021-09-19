@@ -11,7 +11,7 @@ export class SfpProjectConfig {
   public getWorkItemGivenBranch(branch: string): WorkItem {
     if (this.workItems) {
       for (const id of Object.keys(this.workItems)) {
-        if (this.workItems[id]["branch"].toLowerCase() === branch.toLowerCase())
+        if (this.workItems[id]["branch"]?.toLowerCase() === branch.toLowerCase())
           return this.workItems[id];
       }
     } else return undefined;

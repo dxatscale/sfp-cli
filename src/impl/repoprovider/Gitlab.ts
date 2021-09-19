@@ -1,5 +1,5 @@
 import ExecuteCommand from "@dxatscale/sfpowerscripts.core/lib/command/commandExecutor/ExecuteCommand";
-import { COLOR_KEY_MESSAGE, COLOR_KEY_VALUE } from "@dxatscale/sfpowerscripts.core/lib/logger/SFPLogger";
+import SFPLogger, { COLOR_KEY_MESSAGE, COLOR_KEY_VALUE } from "@dxatscale/sfpowerscripts.core/lib/logger/SFPLogger";
 import { WorkItem } from "../../types/WorkItem";
 import { RepoProvider } from "./RepoProvider";
 import child_process = require("child_process");
@@ -50,7 +50,7 @@ export default class Gitlab implements RepoProvider
      pullRequestCommand,
       process.cwd()
     )) as string;
-    console.log(result);
+    SFPLogger.log(result);
   }
 
   public async authenticate() {

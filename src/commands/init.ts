@@ -12,7 +12,7 @@ import SFPlogger, {
   COLOR_WARNING,
 } from "@dxatscale/sfpowerscripts.core/lib/logger/SFPLogger";
 import OrgAuth from "../impl/sfdxwrappers/OrgAuth";
-import PromptToPickAnOrg from "../prompts/PromptToPickAnOrg";
+import PickAnOrg from "../workflows/PickAnOrg";
 import PoolListImpl from "../impl/pool/PoolListImpl";
 import { isEmpty } from "lodash";
 import ScratchOrg from "@dxatscale/sfpowerscripts.core/lib/scratchorg/ScratchOrg";
@@ -21,9 +21,10 @@ import * as fs from "fs-extra";
 import { Org } from "@salesforce/core";
 import path = require("path");
 import RepoProviderSelector from "../impl/repoprovider/RepoProviderSelector";
+import SFPLogger from "@dxatscale/sfpowerscripts.core/lib/logger/SFPLogger";
 
 export default class Init extends SfpCommand {
-  static description = "Intializes the project with various defaults";
+  static description = "intializes the project with various defaults";
 
   static flags = {
     help: flags.help({ char: "h" }),
@@ -48,7 +49,7 @@ export default class Init extends SfpCommand {
           let orgAuth = new OrgAuth(instanceURL);
           await orgAuth.exec(false);
         } catch (error) {
-          console.log(
+          SFPLogger.log(
             COLOR_ERROR(
               `Unable to authenticate to the org, Please try agin later or fix the error below`
             )
@@ -56,9 +57,9 @@ export default class Init extends SfpCommand {
           throw error;
         }
       }
-      let devHubUserName = await new PromptToPickAnOrg({
+      let devHubUserName = await new PickAnOrg({
         username: this.sfpProjectConfig.defaultDevHub,
-      }).promptForDevHubSelection();
+      }).getADevHub();
 
       const hubOrg = await Org.create({ aliasOrUsername: devHubUserName });
       this.sfpProjectConfig.defaultDevHub = devHubUserName;
@@ -88,10 +89,10 @@ export default class Init extends SfpCommand {
       if (isCLIInstalled) {
         await repoProvider.authenticate();
       } else {
-        console.log(COLOR_WARNING(` Missing ${this.sfpProjectConfig.repoProvider} CLI`));
-        console.log(COLOR_KEY_MESSAGE(` Installing ${this.sfpProjectConfig.repoProvider} CLI allows you to automate further. \nPlease read the instructions below`));
+        SFPLogger.log(COLOR_WARNING(` Missing ${this.sfpProjectConfig.repoProvider} CLI`));
+        SFPLogger.log(COLOR_KEY_MESSAGE(` Installing ${this.sfpProjectConfig.repoProvider} CLI allows you to automate further. \nPlease read the instructions below`));
 
-        console.log(repoProvider.getInstallationMessage(this.config.platform));
+        SFPLogger.log(repoProvider.getInstallationMessage(this.config.platform));
       }
     }
 
@@ -106,7 +107,7 @@ export default class Init extends SfpCommand {
       JSON.stringify(this.sfpProjectConfig)
     );
 
-    console.log(
+    SFPLogger.log(
       COLOR_SUCCESS(`Project ${this.projectName} succesfully intiialized`)
     );
   }
