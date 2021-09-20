@@ -10,6 +10,8 @@ import SourceStatus from "../impl/sfdxwrappers/SourceStatus";
 import cli from "cli-ux";
 import { WorkItem } from '../types/WorkItem';
 import PulSourceWorkflow from '../workflows/PullSourceWorkflow';
+import SourceStatusDisplayer from '../impl/displayer/SourceStatusDisplayer';
+import SourceTrackingReset from '../impl/sfdxwrappers/SourceTrackingReset';
 
 export default class Sync extends CommandsWithInitCheck {
   static description = 'sync changes effortlessly either with repository or development environment'
@@ -69,17 +71,21 @@ export default class Sync extends CommandsWithInitCheck {
       {
       SFPLogger.log(`  ${COLOR_WARNING(`Work Item not intialized, always utilize ${COLOR_KEY_MESSAGE(`sfp work`)} to intialize work`)}`)
       devOrg = await new PickAnOrgWorkflow().getADevOrg();
+      //Reset source tracking when user picks up random orgs
+      //await new SourceTrackingReset(devOrg).exec(true);
       }
       else
       {
         devOrg = this.workItem.defaultDevOrg
       }
 
-      args.push(devOrg);
+
       // Determine direction
       cli.action.start(`  Analyzing Changes in ${COLOR_KEY_VALUE(devOrg)}`);
       const sourceStatusResult = await new SourceStatus(devOrg).exec(true);
       cli.action.stop();
+
+      new SourceStatusDisplayer(sourceStatusResult).display();
 
       let isLocalChanges: boolean = false;
       let isRemoteChanges: boolean = false;

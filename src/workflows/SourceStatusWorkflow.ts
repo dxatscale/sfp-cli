@@ -1,10 +1,11 @@
 import cli from "cli-ux";
 import SourceStatus from "../impl/sfdxwrappers/SourceStatus";
-const Table = require("cli-table");
+
 import inquirer = require("inquirer");
 import SFPLogger, {
   LoggerLevel,
 } from "@dxatscale/sfpowerscripts.core/lib/logger/SFPLogger";
+import SourceStatusDisplayer from "../impl/displayer/SourceStatusDisplayer";
 
 
 export default class SourceStatusWorkflow
@@ -47,24 +48,9 @@ export default class SourceStatusWorkflow
     return statusResult;
   }
 
-  private printStatus(statusResult) {
-    const table = new Table({
-      head: ["State", "Full Name", "Type", "File Path"],
-    });
-
-    statusResult.forEach((elem) => {
-      table.push([
-        elem.state,
-        elem.fullName,
-        elem.type,
-        elem.filePath ? elem.filePath : "N/A",
-      ]);
-    });
-    if (statusResult.length > 0) SFPLogger.log(table.toString());
-  }
 
   private async conflictsHandler(conflicts: any) {
-    this.printStatus(conflicts);
+   new SourceStatusDisplayer(conflicts).display();
     SFPLogger.log(
       "Source conflict(s) detected. Verify that you want to keep the remote versions",
       LoggerLevel.WARN
