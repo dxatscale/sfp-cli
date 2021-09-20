@@ -67,7 +67,7 @@ export default class Sync extends CommandsWithInitCheck {
       let devOrg;
       if(this.workItem?.defaultDevOrg==null)
       {
-      SFPLogger.log(`  ${COLOR_WARNING(`Work Itemn not intialized, always utilize ${COLOR_KEY_MESSAGE(`sfp work`)} to intialize work`)}`)
+      SFPLogger.log(`  ${COLOR_WARNING(`Work Item not intialized, always utilize ${COLOR_KEY_MESSAGE(`sfp work`)} to intialize work`)}`)
       devOrg = await new PickAnOrgWorkflow().getADevOrg();
       }
       else
