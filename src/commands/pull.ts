@@ -233,31 +233,6 @@ export default class Pull extends CommandsWithInitCheck {
           }
         } else {
 
-
-
-          console.log("----------")
-          console.log("XX:"+instruction.fullName);
-          console.log("XX:"+dest.package);
-          console.log("YY:"+JSON.stringify(componentSet));
-          let result = await (componentSet.getSourceComponents()).toArray();
-          let result2 = ComponentSet.fromSource(
-            path.resolve(dest.package)
-          ).getSourceComponents().toArray();
-
-          console.log("AA:"+JSON.stringify(result));
-          console.log("----------")
-
-          console.log("CC:"+JSON.stringify(result2));
-          console.log("BB:"+JSON.stringify(result2));
-          console.log("----------")
-
-
-          await inquirer.prompt({
-            type: "confirm",
-            name: "action",
-            message: `Proceed`,
-          });
-
           await converter.convert(componentSet, "source", {
             type: "merge",
             mergeWith: ComponentSet.fromSource(

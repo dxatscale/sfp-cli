@@ -66,13 +66,11 @@ export default class Org extends CommandsWithInitCheck {
       let command = new OrgOpen(username);
       await command.exec(true);
     } catch (error) {
-      let errorType = JSON.parse(error.message).name;
-      if (errorType === "NamedOrgNotFound") {
+
         SFPLogger.log(
-          COLOR_ERROR("  Associated org with this branch/workItem is missing")
-        );
-        await this.associateANewDevOrg();
-      }
+          COLOR_ERROR("  Associated org with this branch/workItem is missing"));
+          await this.associateANewDevOrg();
+
     }
   }
 
