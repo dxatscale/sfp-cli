@@ -61,11 +61,17 @@ export default class Sync extends CommandsWithInitCheck {
       let branches = await git.branch();
       this.workItem = this.sfpProjectConfig.getWorkItemGivenBranch(branches.current);
 
+
+
       //Only select org if there is no org available
-      let devOrg=this.workItem.defaultDevOrg;
-      if(!this.workItem?.defaultDevOrg)
+      let devOrg;
+      if(this.workItem?.defaultDevOrg==null)
       {
-      devOrg = await new PickAnOrgWorkflow({username:this.workItem.defaultDevOrg}).getADevOrg();
+      devOrg = await new PickAnOrgWorkflow().getADevOrg();
+      }
+      else
+      {
+        devOrg = this.workItem.defaultDevOrg
       }
 
       args.push(devOrg);
