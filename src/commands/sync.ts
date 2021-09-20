@@ -1,6 +1,6 @@
 import {flags} from '@oclif/command'
 import inquirer = require('inquirer')
-import SFPLogger, { LoggerLevel, ConsoleLogger, COLOR_KEY_MESSAGE, COLOR_KEY_VALUE } from "@dxatscale/sfpowerscripts.core/lib/logger/SFPLogger";
+import SFPLogger, { LoggerLevel, ConsoleLogger, COLOR_KEY_MESSAGE, COLOR_KEY_VALUE, COLOR_WARNING } from "@dxatscale/sfpowerscripts.core/lib/logger/SFPLogger";
 import PushErrorDisplayer from "@dxatscale/sfpowerscripts.core/lib/display/PushErrorDisplayer";
 import CommandsWithInitCheck from '../sharedCommandBase/CommandsWithInitCheck';
 import simpleGit, { SimpleGit } from "simple-git";
@@ -67,6 +67,7 @@ export default class Sync extends CommandsWithInitCheck {
       let devOrg;
       if(this.workItem?.defaultDevOrg==null)
       {
+      SFPLogger.log(`  ${COLOR_WARNING(`Work Itemn not intialized, always utilize ${COLOR_KEY_MESSAGE(`sfp work`)} to intialize work`)}`)
       devOrg = await new PickAnOrgWorkflow().getADevOrg();
       }
       else
