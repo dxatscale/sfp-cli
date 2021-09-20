@@ -16,7 +16,7 @@ import path = require("path");
 import { WorkItem } from "../types/WorkItem";
 import { SfpProjectConfig } from "../types/SfpProjectConfig";
 import CommandsWithInitCheck from "../sharedCommandBase/CommandsWithInitCheck";
-import CreateAnOrg from "../workflows/CreateAnOrg";
+import CreateAnOrgWorkflow from "../workflows/CreateAnOrgWorkflow";
 import SFPLogger from "@dxatscale/sfpowerscripts.core/lib/logger/SFPLogger";
 
 export default class Workon extends CommandsWithInitCheck {
@@ -130,7 +130,7 @@ export default class Workon extends CommandsWithInitCheck {
 
       try
       {
-      let createAnOrg:CreateAnOrg = new CreateAnOrg(this.sfpProjectConfig,this.workItem.id);
+      let createAnOrg:CreateAnOrgWorkflow = new CreateAnOrgWorkflow(this.sfpProjectConfig,this.workItem.id);
       this.workItem.defaultDevOrg = await createAnOrg.execute();
       }
       catch(error)

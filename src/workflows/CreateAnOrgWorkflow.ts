@@ -15,7 +15,7 @@ import PoolFetchImpl from "../impl/pool/PoolFetchImpl";
 import CreateScratchOrgImpl from "@dxatscale/sfpowerscripts.core/lib/sfdxwrappers/CreateScratchOrgImpl";
 import OrgOpen from "../impl/sfdxwrappers/OrgOpen";
 
-export default class CreateAnOrg
+export default class CreateAnOrgWorkflow
 {
 
 
@@ -105,7 +105,7 @@ export default class CreateAnOrg
         await this.promptForNeedForOpeningDevEnvironment();
       if (isOrgToBeOpened) {
         let command = new OrgOpen(createdOrg);
-        await command.exec(true);
+        await command.exec(false);
       }
     }
 

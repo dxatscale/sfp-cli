@@ -1,15 +1,15 @@
 import {flags} from '@oclif/command'
 import inquirer = require('inquirer')
-import SFPLogger, { LoggerLevel, ConsoleLogger, COLOR_KEY_MESSAGE } from "@dxatscale/sfpowerscripts.core/lib/logger/SFPLogger";
+import SFPLogger, { LoggerLevel, ConsoleLogger, COLOR_KEY_MESSAGE, COLOR_KEY_VALUE } from "@dxatscale/sfpowerscripts.core/lib/logger/SFPLogger";
 import PushErrorDisplayer from "@dxatscale/sfpowerscripts.core/lib/display/PushErrorDisplayer";
-import Pull from './pull';
 import CommandsWithInitCheck from '../sharedCommandBase/CommandsWithInitCheck';
 import simpleGit, { SimpleGit } from "simple-git";
 import SourcePush from "../impl/sfdxwrappers/SourcePush";
-import PickAnOrg from '../workflows/PickAnOrg';
+import PickAnOrgWorkflow from '../workflows/PickAnOrgWorkflow';
 import SourceStatus from "../impl/sfdxwrappers/SourceStatus";
 import cli from "cli-ux";
 import { WorkItem } from '../types/WorkItem';
+import PulSourceWorkflow from '../workflows/PullSourceWorkflow';
 
 export default class Sync extends CommandsWithInitCheck {
   static description = 'sync changes effortlessly either with repository or development environment'
@@ -65,12 +65,12 @@ export default class Sync extends CommandsWithInitCheck {
       let devOrg=this.workItem.defaultDevOrg;
       if(!this.workItem?.defaultDevOrg)
       {
-      devOrg = await new PickAnOrg({username:this.workItem.defaultDevOrg}).getADevOrg();
+      devOrg = await new PickAnOrgWorkflow({username:this.workItem.defaultDevOrg}).getADevOrg();
       }
 
       args.push(devOrg);
       // Determine direction
-      cli.action.start("  Analyzing Changes");
+      cli.action.start(`  Analyzing Changes in ${COLOR_KEY_VALUE(devOrg)}`);
       const sourceStatusResult = await new SourceStatus(devOrg).exec(true);
       cli.action.stop();
 
@@ -86,8 +86,10 @@ export default class Sync extends CommandsWithInitCheck {
           break;
         }
 
-        if (component.state.startsWith("Local")) isLocalChanges = true;
-
+        if (component.state.startsWith("Local"))
+        {
+        isLocalChanges = true;
+        }
         if (component.state.startsWith("Remote")) isRemoteChanges = true;
       }
 
@@ -117,8 +119,8 @@ export default class Sync extends CommandsWithInitCheck {
         });
 
         if (syncDirection.direction === "overwriteLocal") {
-          let pull:Pull = new Pull(args,this.config);
-          await pull.run();
+          let pullWorkflow:PulSourceWorkflow = new PulSourceWorkflow(devOrg,sourceStatusResult);
+          await pullWorkflow.execute();
         } else if (syncDirection.direction === "overwriteRemote") {
           await this.PushSourceToDevOrg(devOrg);
         } else {
@@ -126,15 +128,17 @@ export default class Sync extends CommandsWithInitCheck {
         }
 
       } else if (isLocalChanges && isRemoteChanges) {
-        let pull:Pull = new Pull(args,this.config);
-        await pull.run();
+
+        let pullWorkflow:PulSourceWorkflow = new PulSourceWorkflow(devOrg,sourceStatusResult);
+        await pullWorkflow.execute();
 
         await this.PushSourceToDevOrg(devOrg);
       } else if (isLocalChanges) {
         await this.PushSourceToDevOrg(devOrg);
       } else if (isRemoteChanges) {
-        let pull:Pull = new Pull(args,this.config);
-        await pull.run();
+
+        let pullWorkflow:PulSourceWorkflow = new PulSourceWorkflow(devOrg,sourceStatusResult);
+        await pullWorkflow.execute();
       }
       else
       {
@@ -148,8 +152,9 @@ export default class Sync extends CommandsWithInitCheck {
 
   private async PushSourceToDevOrg(devOrg: string) {
     try {
-      SFPLogger.log(`Pushing source to org ${devOrg}`, LoggerLevel.INFO);
+      cli.action.start(`  Pushing source to org ${COLOR_KEY_VALUE(devOrg)}`);
       await new SourcePush(devOrg, true).exec();
+      cli.action.stop();
     } catch (error) {
       PushErrorDisplayer.printMetadataFailedToPush(JSON.parse(error.message), new ConsoleLogger());
       throw new Error("Failed to push source");

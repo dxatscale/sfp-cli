@@ -7,8 +7,8 @@ import inquirer = require("inquirer");
 import simpleGit, { SimpleGit } from "simple-git";
 import OrgDelete from "../impl/sfdxwrappers/OrgDelete";
 import OrgOpen from "../impl/sfdxwrappers/OrgOpen";
-import CreateAnOrg from "../workflows/CreateAnOrg";
-import PickAnOrg from "../workflows/PickAnOrg";
+import CreateAnOrgWorkflow from "../workflows/CreateAnOrgWorkflow";
+import PickAnOrgWorkflow from "../workflows/PickAnOrgWorkflow";
 import CommandsWithInitCheck from "../sharedCommandBase/CommandsWithInitCheck";
 import { WorkItem } from "../types/WorkItem";
 import Workon from "./workon";
@@ -64,7 +64,7 @@ export default class Org extends CommandsWithInitCheck {
   private async openAssociatedOrg(username: string) {
     try {
       let command = new OrgOpen(username);
-      await command.exec(true);
+      await command.exec(false);
     } catch (error) {
 
         SFPLogger.log(
@@ -79,7 +79,7 @@ export default class Org extends CommandsWithInitCheck {
 
     if(this.workItem?.id)
     {
-      let createAnOrg: CreateAnOrg = new CreateAnOrg(
+      let createAnOrg: CreateAnOrgWorkflow = new CreateAnOrgWorkflow(
         this.sfpProjectConfig,
         this.workItem.id
       );
@@ -99,7 +99,7 @@ export default class Org extends CommandsWithInitCheck {
     }
     else
       {
-        let createAnOrg: CreateAnOrg = new CreateAnOrg(
+        let createAnOrg: CreateAnOrgWorkflow = new CreateAnOrgWorkflow(
           this.sfpProjectConfig,
           this.workItemId
         );
@@ -123,14 +123,14 @@ export default class Org extends CommandsWithInitCheck {
   }
 
   private async deleteOrg() {
-    let pickAnOrg = new PickAnOrg();
+    let pickAnOrg = new PickAnOrgWorkflow();
     let username = await pickAnOrg.getADevOrg();
     let command = new OrgDelete(username, this.sfpProjectConfig.defaultDevHub);
     await command.exec();
   }
 
   private async openAnyOrg() {
-    let pickAnOrg = new PickAnOrg();
+    let pickAnOrg = new PickAnOrgWorkflow();
     let username = await pickAnOrg.getAnyOrg();
     let command = new OrgOpen(username);
     await command.exec();

@@ -1,7 +1,7 @@
 import inquirer = require("inquirer");
 const fuzzy = require("fuzzy");
 
-export default class SelectPackage
+export default class SelectPackageWorkflow
 {
 
   constructor(

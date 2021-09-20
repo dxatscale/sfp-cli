@@ -7,7 +7,7 @@ inquirer.registerPrompt(
 
 const path = require("path");
 
-export default class CreatePackage {
+export default class CreatePackageWorkflow {
 
   constructor(
     private readonly projectConfig

@@ -4,7 +4,7 @@ import inquirer = require("inquirer");
 import cli from "cli-ux";
 import { convertAliasToUsername } from "@dxatscale/sfpowerscripts.core/lib/utils/AliasList"
 
-export default class PickAnOrg {
+export default class PickAnOrgWorkflow {
   private orgList: any;
 
 

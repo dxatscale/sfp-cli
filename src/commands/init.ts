@@ -12,7 +12,7 @@ import SFPlogger, {
   COLOR_WARNING,
 } from "@dxatscale/sfpowerscripts.core/lib/logger/SFPLogger";
 import OrgAuth from "../impl/sfdxwrappers/OrgAuth";
-import PickAnOrg from "../workflows/PickAnOrg";
+import PickAnOrgWorkflow from "../workflows/PickAnOrgWorkflow";
 import PoolListImpl from "../impl/pool/PoolListImpl";
 import { isEmpty } from "lodash";
 import ScratchOrg from "@dxatscale/sfpowerscripts.core/lib/scratchorg/ScratchOrg";
@@ -57,7 +57,7 @@ export default class Init extends SfpCommand {
           throw error;
         }
       }
-      let devHubUserName = await new PickAnOrg({
+      let devHubUserName = await new PickAnOrgWorkflow({
         username: this.sfpProjectConfig.defaultDevHub,
       }).getADevHub();
 
