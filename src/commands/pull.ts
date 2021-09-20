@@ -2,6 +2,7 @@ import { flags } from "@oclif/command";
 import {
   ComponentSet,
   MetadataConverter,
+  ConvertResult
 } from "@salesforce/source-deploy-retrieve";
 import path = require("path");
 import * as fs from "fs-extra";
@@ -213,6 +214,8 @@ export default class Pull extends CommandsWithInitCheck {
 
 
       for (let dest of instruction.destination) {
+        let convertResult: ConvertResult;
+
         if (dest.aliasfy) {
           let files = fs.readdirSync(dest.package);
           let aliases = files.filter((file) => {
@@ -221,7 +224,7 @@ export default class Pull extends CommandsWithInitCheck {
           });
 
           for (let alias of aliases) {
-            await converter.convert(componentSet, "source", {
+            convertResult = await converter.convert(componentSet, "source", {
               type: "merge",
               mergeWith: ComponentSet.fromSource(
                 path.resolve(dest.package, alias)
@@ -232,8 +235,7 @@ export default class Pull extends CommandsWithInitCheck {
             });
           }
         } else {
-
-          await converter.convert(componentSet, "source", {
+          convertResult = await converter.convert(componentSet, "source", {
             type: "merge",
             mergeWith: ComponentSet.fromSource(
               path.resolve(dest.package)
@@ -242,8 +244,10 @@ export default class Pull extends CommandsWithInitCheck {
             forceIgnoredPaths:
               componentSet.forceIgnoredPaths ?? new Set<string>(),
           });
+        }
 
-
+        if (this.isXmlFileSuffixDuped(convertResult.converted[0].xml)) {
+          this.dedupeXmlFileSuffix(convertResult.converted[0].xml);
         }
       }
 
@@ -253,6 +257,15 @@ export default class Pull extends CommandsWithInitCheck {
     }
 
     SFPLogger.log(COLOR_SUCCESS("  Successfully moved source components"));
+  }
+
+  private isXmlFileSuffixDuped(xmlFile: string): boolean {
+    return xmlFile.match(/-meta\.xml/g)?.length === 2
+  }
+
+  private dedupeXmlFileSuffix(xmlFile: string): void {
+      let deduped = xmlFile.replace(/-meta\.xml/, "");
+      fs.renameSync(xmlFile, deduped);
   }
 
   private async getMoveAction(instruction: Instruction) {
