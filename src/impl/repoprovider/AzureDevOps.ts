@@ -15,15 +15,19 @@ export default class AzureDevOps implements RepoProvider {
   }
 
   public async isCLIInstalled(): Promise<boolean> {
-    let executor: ExecuteCommand = new ExecuteCommand();
-    let result = (await executor.execCommand(
-      "az version",
-      process.cwd()
-    )) as string;
-    if (result.includes("azure-devops")) {
-      this._isCLIInstalled = true;
-      return true;
-    } else return false;
+    try {
+      let executor: ExecuteCommand = new ExecuteCommand();
+      let result = (await executor.execCommand(
+        "az version",
+        process.cwd()
+      )) as string;
+      if (result.includes("azure-devops")) {
+        this._isCLIInstalled = true;
+        return true;
+      } else return false;
+    } catch (error) {
+      return false;
+    }
   }
   getInstallationMessage(platform: string): string {
     if (platform === "darwin")
