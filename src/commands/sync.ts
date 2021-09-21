@@ -5,11 +5,11 @@ import PushErrorDisplayer from "@dxatscale/sfpowerscripts.core/lib/display/PushE
 import CommandsWithInitCheck from '../sharedCommandBase/CommandsWithInitCheck';
 import simpleGit, { SimpleGit } from "simple-git";
 import SourcePush from "../impl/sfdxwrappers/SourcePush";
-import PickAnOrgWorkflow from '../workflows/PickAnOrgWorkflow';
+import PickAnOrgWorkflow from '../workflows/org/PickAnOrgWorkflow';
 import SourceStatus from "../impl/sfdxwrappers/SourceStatus";
 import cli from "cli-ux";
 import { WorkItem } from '../types/WorkItem';
-import PulSourceWorkflow from '../workflows/PullSourceWorkflow';
+import PulSourceWorkflow from '../workflows/source/PullSourceWorkflow';
 import SourceStatusDisplayer from '../impl/displayer/SourceStatusDisplayer';
 import SourceTrackingReset from '../impl/sfdxwrappers/SourceTrackingReset';
 

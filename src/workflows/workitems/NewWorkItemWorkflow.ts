@@ -13,29 +13,21 @@ import SFPlogger, {
 import cli from "cli-ux";
 import simpleGit, { SimpleGit } from "simple-git";
 import path = require("path");
-import { WorkItem } from "../types/WorkItem";
-import { SfpProjectConfig } from "../types/SfpProjectConfig";
-import CommandsWithInitCheck from "../sharedCommandBase/CommandsWithInitCheck";
-import CreateAnOrgWorkflow from "../workflows/CreateAnOrgWorkflow";
+import { WorkItem } from "../../types/WorkItem";
+import { SfpProjectConfig } from "../../types/SfpProjectConfig";
+import CreateAnOrgWorkflow from "../org/CreateAnOrgWorkflow";
 import SFPLogger from "@dxatscale/sfpowerscripts.core/lib/logger/SFPLogger";
 
-export default class Workon extends CommandsWithInitCheck {
-  static description =
-    "Interactive command to initiate a new work item using the DX@Scale flow";
+export default class NewWorkItemWorkflow {
 
-  static flags = {
-    help: flags.help({ char: "h" }),
-  };
 
-  // hide the command from help
-  static hidden = true;
-
-  static args = [{ name: "caller" }, { name: "mode" }];
   orgList: any;
   workItem: WorkItem;
-  sfpProjectConfig: SfpProjectConfig;
 
-  async executeCommand() {
+
+  public constructor(private sfpProjectConfig:SfpProjectConfig,private configDir:string){}
+
+  async execute() {
     SFPlogger.log(COLOR_KEY_MESSAGE("Provide details of the workitem"));
 
     let workItemId = await this.promptAndCaptureWorkItem();
@@ -155,7 +147,7 @@ export default class Workon extends CommandsWithInitCheck {
     this.sfpProjectConfig.workItems[this.workItem.id].isActive = true;
 
     fs.writeJSONSync(
-      path.join(this.config.configDir, `${this.projectName}.json`),
+      path.join(this.configDir, `${this.sfpProjectConfig.name}.json`),
       this.sfpProjectConfig
     );
   }
@@ -296,10 +288,4 @@ export default class Workon extends CommandsWithInitCheck {
       this.sfpProjectConfig.workItems[key].isActive = false;
     }
   }
-}
-
-enum OrgType {
-  POOL = 1,
-  SCRATCHORG = 2,
-  SANDBOX = 3,
 }

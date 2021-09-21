@@ -7,7 +7,7 @@ import path = require("path");
 import * as fs from "fs-extra";
 import inquirer = require("inquirer");
 import ProjectConfig from "@dxatscale/sfpowerscripts.core/lib/project/ProjectConfig";
-import * as metadataRegistry from "../metadataRegistry.json";
+import * as metadataRegistry from "../../metadataRegistry.json";
 
 import SFPLogger, {
   COLOR_KEY_MESSAGE,
@@ -15,9 +15,9 @@ import SFPLogger, {
   COLOR_SUCCESS,
 } from "@dxatscale/sfpowerscripts.core/lib/logger/SFPLogger";
 
-import CreatePackageWorkflow from "./CreatePackageWorkflow";
-import SourcePull from "../impl/sfdxwrappers/SourcePull";
-import SelectPackageWorkflow from "./SelectPackageWorkflow";
+import CreatePackageWorkflow from "../package/CreatePackageWorkflow";
+import SourcePull from "../../impl/sfdxwrappers/SourcePull";
+import SelectPackageWorkflow from "../package/SelectPackageWorkflow";
 import { isEmpty } from "lodash";
 import cli from "cli-ux";
 

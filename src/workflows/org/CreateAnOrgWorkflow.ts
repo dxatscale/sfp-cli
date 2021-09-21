@@ -1,9 +1,9 @@
 import ScratchOrg from "@dxatscale/sfpowerscripts.core/lib/scratchorg/ScratchOrg";
 import { Org } from "@salesforce/core";
 import inquirer = require("inquirer");
-import PoolListImpl from "../impl/pool/PoolListImpl";
-import { SfpProjectConfig } from "../types/SfpProjectConfig";
-import { WorkItem } from "../types/WorkItem";
+import PoolListImpl from "../../impl/pool/PoolListImpl";
+import { SfpProjectConfig } from "../../types/SfpProjectConfig";
+import { WorkItem } from "../../types/WorkItem";
 import { isEmpty } from "lodash";
 import cli from "cli-ux";
 import SFPLogger, { COLOR_KEY_MESSAGE, COLOR_SUCCESS, LoggerLevel } from "@dxatscale/sfpowerscripts.core/lib/logger/SFPLogger";
@@ -11,9 +11,9 @@ import InstalledAritfactsFetcher from "@dxatscale/sfpowerscripts.core/lib/artifa
 import InstalledArtifactsDisplayer from "@dxatscale/sfpowerscripts.core/lib/display/InstalledArtifactsDisplayer";
 import InstalledPackagesFetcher from "@dxatscale/sfpowerscripts.core/lib/package/installedPackages/InstalledPackagesFetcher";
 import InstalledPackageDisplayer from "@dxatscale/sfpowerscripts.core/lib/display/InstalledPackagesDisplayer";
-import PoolFetchImpl from "../impl/pool/PoolFetchImpl";
+import PoolFetchImpl from "../../impl/pool/PoolFetchImpl";
 import CreateScratchOrgImpl from "@dxatscale/sfpowerscripts.core/lib/sfdxwrappers/CreateScratchOrgImpl";
-import OrgOpen from "../impl/sfdxwrappers/OrgOpen";
+import OrgOpen from "../../impl/sfdxwrappers/OrgOpen";
 
 export default class CreateAnOrgWorkflow
 {

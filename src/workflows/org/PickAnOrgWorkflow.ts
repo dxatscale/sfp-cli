@@ -1,4 +1,4 @@
-import OrgList from "../impl/sfdxwrappers/OrgList";
+import OrgList from "../../impl/sfdxwrappers/OrgList";
 import { isEmpty } from "lodash";
 import inquirer = require("inquirer");
 import cli from "cli-ux";

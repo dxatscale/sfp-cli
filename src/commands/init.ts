@@ -12,7 +12,7 @@ import SFPlogger, {
   COLOR_WARNING,
 } from "@dxatscale/sfpowerscripts.core/lib/logger/SFPLogger";
 import OrgAuth from "../impl/sfdxwrappers/OrgAuth";
-import PickAnOrgWorkflow from "../workflows/PickAnOrgWorkflow";
+import PickAnOrgWorkflow from "../workflows/org/PickAnOrgWorkflow";
 import PoolListImpl from "../impl/pool/PoolListImpl";
 import { isEmpty } from "lodash";
 import ScratchOrg from "@dxatscale/sfpowerscripts.core/lib/scratchorg/ScratchOrg";

@@ -1,11 +1,11 @@
 import cli from "cli-ux";
-import SourceStatus from "../impl/sfdxwrappers/SourceStatus";
+import SourceStatus from "../../impl/sfdxwrappers/SourceStatus";
 
 import inquirer = require("inquirer");
 import SFPLogger, {
   LoggerLevel,
 } from "@dxatscale/sfpowerscripts.core/lib/logger/SFPLogger";
-import SourceStatusDisplayer from "../impl/displayer/SourceStatusDisplayer";
+import SourceStatusDisplayer from "../../impl/displayer/SourceStatusDisplayer";
 
 
 export default class SourceStatusWorkflow
@@ -43,7 +43,7 @@ export default class SourceStatusWorkflow
         return elem;
       });
 
-    this.printStatus(statusResult);
+    new SourceStatusDisplayer(statusResult).display();
 
     return statusResult;
   }

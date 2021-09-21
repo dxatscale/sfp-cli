@@ -1,8 +1,9 @@
 import {flags} from '@oclif/command'
 import inquirer = require('inquirer')
-import Workon from './workon'
+import NewWorkItemWorkflow from '../workflows/workitems/NewWorkItemWorkflow'
 import SFPLogger, { COLOR_HEADER } from "@dxatscale/sfpowerscripts.core/lib/logger/SFPLogger";
 import CommandsWithInitCheck from '../sharedCommandBase/CommandsWithInitCheck';
+import DeleteWorkItemWorkflow from '../workflows/workitems/DeleteWorkItemWorkflow';
 
 export default class WorkItem extends CommandsWithInitCheck {
   static description = 'create/switch/submit a workitem'
@@ -17,37 +18,39 @@ export default class WorkItem extends CommandsWithInitCheck {
 
     let topic = await this.promptAndCaptureOption();
 
-    if(topic === 'Work on a new item')
+    if(topic === WorkItemOperations.NEW )
     {
-      let args=new Array<string>();
-      args.push("inner");
-      args.push("start");
-      let workOn:Workon = new Workon(args,this.config);
-      await workOn.run();
+
+      let newWorkItemWorkflow: NewWorkItemWorkflow = new NewWorkItemWorkflow(this.sfpProjectConfig, this.config.configDir);
+      await newWorkItemWorkflow.execute();
     }
-    else if(topic === 'Switch to an existing work item')
+    else if(topic === WorkItemOperations.SWITCH)
     {
-      let args=new Array<string>();
-      args.push("inner");
-      args.push("existing");
-      let workOn:Workon = new Workon(args,this.config);
-      await workOn.run();
+
+      let newWorkItemWorkflow: NewWorkItemWorkflow = new NewWorkItemWorkflow(this.sfpProjectConfig, this.config.configDir);
+      await newWorkItemWorkflow.execute();
+    }
+    else if (topic == WorkItemOperations.DELETE)
+    {
+      let deleteWorkItemWorkflow = new DeleteWorkItemWorkflow(this.sfpProjectConfig,this.config.configDir);
+      await deleteWorkItemWorkflow.execute();
     }
 
   }
 
 
-  private async promptAndCaptureOption(): Promise<string> {
+  private async promptAndCaptureOption(): Promise<WorkItemOperations> {
     const optionPrompt = await inquirer.prompt([
       {
         type: "list",
         name: "option",
         message: "Select an option to proceed?",
         choices: [
-          "Work on a new item",
-          "Switch to an existing work item",
-          "Submit a work item",
-          "Delete a work item"
+          {name:"Work on a new item",value:WorkItemOperations.NEW},
+          {name:"Switch to an existing work item",value:WorkItemOperations.SWITCH},
+          {name:"Associate a new work item with this branch",value:WorkItemOperations.ASSOCIATE},
+          {name:"Submit a work item",value:WorkItemOperations.SUBMIT},
+          {name:"Delete a work item",value:WorkItemOperations.DELETE},
         ],
         default: "Work on a new item "
       },
@@ -55,4 +58,12 @@ export default class WorkItem extends CommandsWithInitCheck {
 
     return optionPrompt.option;
   }
+}
+export enum WorkItemOperations
+{
+  NEW=0,
+  SWITCH=1,
+  ASSOCIATE=2,
+  SUBMIT=3,
+  DELETE=4
 }

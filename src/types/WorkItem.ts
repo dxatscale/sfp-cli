@@ -9,6 +9,7 @@ export class WorkItem
    startCommitId?:string
    initiatedDate?:number
    lastModifiedDate?:number
+   isDeleted?:boolean
 
    constructor(id:string)
    {

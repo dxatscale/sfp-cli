@@ -7,13 +7,14 @@ import inquirer = require("inquirer");
 import simpleGit, { SimpleGit } from "simple-git";
 import OrgDelete from "../impl/sfdxwrappers/OrgDelete";
 import OrgOpen from "../impl/sfdxwrappers/OrgOpen";
-import CreateAnOrgWorkflow from "../workflows/CreateAnOrgWorkflow";
-import PickAnOrgWorkflow from "../workflows/PickAnOrgWorkflow";
+import CreateAnOrgWorkflow from "../workflows/org/CreateAnOrgWorkflow";
+import PickAnOrgWorkflow from "../workflows/org/PickAnOrgWorkflow";
 import CommandsWithInitCheck from "../sharedCommandBase/CommandsWithInitCheck";
 import { WorkItem } from "../types/WorkItem";
-import Workon from "./workon";
+import NewWorkItemWorkflow from "../workflows/workitems/NewWorkItemWorkflow";
 import * as fs from "fs-extra";
 import path = require("path");
+import DeleteOrgWorkflow from "../workflows/org/DeleteOrgWorkflow";
 
 export default class Org extends CommandsWithInitCheck {
   static description = "guided workflows to help with developer orgs";
@@ -44,18 +45,16 @@ export default class Org extends CommandsWithInitCheck {
             `  No work item or org associated with the branch. Create a work item`
           )
         );
-        let args = new Array<string>();
-        args.push("inner");
-        args.push("start");
-        let workOn: Workon = new Workon(args, this.config);
-        await workOn.run();
+        let newWorkItemWorkflow: NewWorkItemWorkflow = new NewWorkItemWorkflow(this.sfpProjectConfig, this.config.configDir);
+        await newWorkItemWorkflow.execute();
       } else await this.openAssociatedOrg(this.workItem.defaultDevOrg);
     } else if (orgCommandSelected === OrgCommand.OPEN_ANY_ORG) {
       await this.openAnyOrg();
     } else if (orgCommandSelected === OrgCommand.CREATE_AN_ORG) {
       await this.associateANewDevOrg();
     } else {
-      await this.deleteOrg();
+      let deleteOrgWorkflow = new DeleteOrgWorkflow(this.sfpProjectConfig);
+      await deleteOrgWorkflow.execute();
     }
   }
 
@@ -122,12 +121,7 @@ export default class Org extends CommandsWithInitCheck {
     return associatePrompt.isAssociate;
   }
 
-  private async deleteOrg() {
-    let pickAnOrg = new PickAnOrgWorkflow();
-    let username = await pickAnOrg.getADevOrg();
-    let command = new OrgDelete(username, this.sfpProjectConfig.defaultDevHub);
-    await command.exec();
-  }
+
 
   private async openAnyOrg() {
     let pickAnOrg = new PickAnOrgWorkflow();

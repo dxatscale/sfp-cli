@@ -7,12 +7,12 @@ import SFPlogger, {
   COLOR_WARNING,
   LoggerLevel,
 } from "@dxatscale/sfpowerscripts.core/lib/logger/SFPLogger";
-import PickAnOrgWorkflow from "../workflows/PickAnOrgWorkflow";
+import PickAnOrgWorkflow from "../workflows/org/PickAnOrgWorkflow";
 import simpleGit, { SimpleGit } from "simple-git";
 import CommandsWithInitCheck from "../sharedCommandBase/CommandsWithInitCheck";
 import SFPLogger from "@dxatscale/sfpowerscripts.core/lib/logger/SFPLogger";
-import SourceStatusWorkflow from "../workflows/SourceStatusWorkflow";
-import PullSource from "../workflows/PullSourceWorkflow";
+import SourceStatusWorkflow from "../workflows/source/SourceStatusWorkflow";
+import PullSource from "../workflows/source/PullSourceWorkflow";
 
 export default class Pull extends CommandsWithInitCheck {
   static description =
