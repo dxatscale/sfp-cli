@@ -50,6 +50,7 @@ export default class Pull extends CommandsWithInitCheck {
     }
 
     let statusWorkflow = new SourceStatusWorkflow(devOrg);
+
     let statusResult = await statusWorkflow.execute();
 
     if (statusResult.length === 0) {

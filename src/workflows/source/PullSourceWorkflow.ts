@@ -1,7 +1,7 @@
 import {
   ComponentSet,
   MetadataConverter,
-  ConvertResult
+  ConvertResult,
 } from "@salesforce/source-deploy-retrieve";
 import path = require("path");
 import * as fs from "fs-extra";
@@ -22,24 +22,32 @@ import { isEmpty } from "lodash";
 import cli from "cli-ux";
 
 export default class PulSourceWorkflow {
+  public constructor(private devOrg: string, private sourceStatusResult: any) {}
 
-
-
-  public constructor(private devOrg:string,private statusResult: any)
-  {
-
-  }
-
-  async execute():Promise<void> {
-
-    if (this.statusResult.length === 0) {
+  async execute(): Promise<void> {
+    if (this.sourceStatusResult.length === 0) {
       SFPLogger.log(COLOR_SUCCESS("  No changes found"));
       return;
     }
 
-    const remoteAdditions = this.statusResult.filter(
-      (elem) => elem.state === "Remote Add"
-    );
+    const remoteAdditions = this.sourceStatusResult.filter((elem) => {
+      //We only have to ask for files that have -meta.xml, all else changes let cli auto merge when doing pull
+      if (elem.state === "Remote Add") {
+        if (elem.parentFolder == null) return elem;
+        else if (elem.parentFolder && elem.fullName.includes("-meta.xml"))
+          return elem;
+        else if (
+          elem.parentFolder &&
+          (elem.fullName.includes(".cmp") || elem.fullName.includes(".evt"))
+        )
+          return elem;
+      }
+    });
+
+    let folderMoveInstructions: {
+      parentFolder: string;
+      instruction: Instruction;
+    }[] = [];
 
     SFPLogger.log(
       COLOR_KEY_MESSAGE(
@@ -52,12 +60,29 @@ export default class PulSourceWorkflow {
 
     let mergePlan: Instruction[] = [];
     for (let remoteAddition of remoteAdditions) {
-
+      let isToBeSkipped: boolean = false;
       const instruction: Instruction = {
         fullName: remoteAddition.fullName,
         type: remoteAddition.type,
         destination: [],
       };
+
+      for (let folderMoveInstruction of folderMoveInstructions) {
+        if (remoteAddition.parentFolder == folderMoveInstruction.parentFolder) {
+          instruction.destination =
+            folderMoveInstruction.instruction.destination;
+          isToBeSkipped = true;
+          break;
+        }
+      }
+
+      if (isToBeSkipped) {
+        SFPLogger.log(
+          `  Skipping ${remoteAddition.fullName} as instruction is already set`
+        );
+        mergePlan.push(instruction);
+        continue;
+      }
 
       let moveAction = await this.getMoveAction(instruction);
 
@@ -140,35 +165,57 @@ export default class PulSourceWorkflow {
         throw new Error(`Unrecognised MoveAction ${moveAction}`);
       }
       mergePlan.push(instruction);
+      if (remoteAddition.parentFolder) {
+        folderMoveInstructions.push({
+          parentFolder: remoteAddition.parentFolder,
+          instruction,
+        });
+      }
     }
 
     newPackagesDirectories.forEach((dir) => fs.mkdirpSync(dir));
     this.writeProjectConfigToFile(projectConfig);
 
-    cli.action.start(`  Pulling source components from dev org... ${COLOR_KEY_VALUE(this.devOrg)}..`);
-    let pullResult = await (new SourcePull(this.devOrg, true)).exec(true);
+    cli.action.start(
+      `  Pulling source components from dev org... ${COLOR_KEY_VALUE(
+        this.devOrg
+      )}..`
+    );
+    let pullResult = await new SourcePull(this.devOrg, true).exec(true);
     cli.action.stop();
     SFPLogger.log(COLOR_SUCCESS("  Successfully pulled source components"));
 
     cli.action.start("  Moving source components...");
 
     for (let instruction of mergePlan) {
-      let components = pullResult.pulledSource.filter(
-        (component) =>
+      let components = pullResult.pulledSource.filter((component) => {
+        //Handle Bundles
+        if (component.fullName.includes("/")) {
+          if (
+            component.fullName.split("/")[0] ==
+              instruction.fullName.split("/")[0] &&
+            component.type === instruction.type
+          )
+            return component;
+        } else if (
           component.fullName === this.encodeData(instruction.fullName) &&
           component.type === instruction.type
-      );
+        )
+          return component;
+      });
 
-      if(isEmpty(components))
-       continue;
+      if (isEmpty(components)) continue;
 
       const converter = new MetadataConverter();
-      const componentSet = ComponentSet.fromSource(
-        components.find(
-          (component) => path.extname(component.filePath) === ".xml"
-        )?.filePath
-      );
 
+      let filePath = components.find(
+        (component) => path.extname(component.filePath) === ".xml"
+      )?.filePath;
+
+      //We dont want non xml files to the merger
+      if (filePath == null) continue;
+
+      const componentSet = ComponentSet.fromSource(filePath);
 
       for (let dest of instruction.destination) {
         let convertResult: ConvertResult;
@@ -211,18 +258,21 @@ export default class PulSourceWorkflow {
       for (let component of components) {
         fs.unlinkSync(component.filePath);
       }
+
+      //Clean up src-temp of empty directories
+      this.removeEmptyDirectories("src-temp/main/default");
     }
 
     cli.action.stop();
   }
 
   private isXmlFileSuffixDuped(xmlFile: string): boolean {
-    return xmlFile.match(/-meta\.xml/g)?.length === 2
+    return xmlFile.match(/-meta\.xml/g)?.length === 2;
   }
 
   private dedupeXmlFileSuffix(xmlFile: string): void {
-      let deduped = xmlFile.replace(/-meta\.xml/, "");
-      fs.renameSync(xmlFile, deduped);
+    let deduped = xmlFile.replace(/-meta\.xml/, "");
+    fs.renameSync(xmlFile, deduped);
   }
 
   private async getMoveAction(instruction: Instruction) {
@@ -233,6 +283,34 @@ export default class PulSourceWorkflow {
       choices: this.getChoicesForMovingMetadata(instruction),
     });
     return moveAction.action;
+  }
+
+  private async removeEmptyDirectories(directory) {
+    // lstat does not follow symlinks (in contrast to stat)
+    try{
+    const fileStats = await fs.lstat(directory);
+    if (!fileStats.isDirectory()) {
+      return;
+    }
+    let fileNames = await fs.readdir(directory);
+    if (fileNames.length > 0) {
+      const recursiveRemovalPromises = fileNames.map((fileName) =>
+        this.removeEmptyDirectories(path.join(directory, fileName))
+      );
+      await Promise.all(recursiveRemovalPromises);
+
+      // re-evaluate fileNames; after deleting subdirectory
+      // we may have parent directory empty now
+      fileNames = await fs.readdir(directory);
+    }
+
+    if (fileNames.length === 0) {
+        await fs.rmdir(directory);
+    }
+   }catch(error)
+   {
+     return;
+   }
   }
 
   private getChoicesForMovingMetadata(metadata) {
@@ -306,17 +384,11 @@ export default class PulSourceWorkflow {
     );
   }
 
-
-
-
-
-
-
   private writeProjectConfigToFile(projectConfig: any) {
     fs.writeJSONSync("sfdx-project.json", projectConfig, { spaces: 2 });
   }
 
-  private encodeData(s:String):String{
+  private encodeData(s: String): String {
     return s.replace(/\(/g, "%28").replace(/\)/g, "%29");
   }
 }

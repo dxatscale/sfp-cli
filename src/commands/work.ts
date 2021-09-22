@@ -12,7 +12,7 @@ export default class WorkItem extends CommandsWithInitCheck {
     help: flags.help({char: 'h'})
   }
 
-  static args = [{name: 'file'}]
+
 
   async executeCommand() {
 

@@ -9,15 +9,11 @@ import DeleteOrgWorkflow from "../org/DeleteOrgWorkflow";
 import PickAWorkItemWorkflow from "./PickAWorkItemWorkflow";
 import * as fs from "fs-extra";
 import path = require("path");
-import cli from "cli-ux";
+
 
 export default class DeleteWorkItemWorkflow {
   private workItem: WorkItem;
 
-  //4. switch to main, and prompt to delete
-  //5. Delete work item.. mark it for deletion
-  //6. Delete associated org <--- URL for delete pipeline?
-  //7.
 
   public constructor(
     private sfpProjectConfig: SfpProjectConfig,
@@ -25,9 +21,7 @@ export default class DeleteWorkItemWorkflow {
   ) {}
 
   public async execute() {
-    //1. Figure Current WorkItem Name
-    //2. Prompt to confirm
-    //3. Display All Work Items <--  PickAWorkItem
+
     const git: SimpleGit = simpleGit();
     let branches = await git.branch();
     this.workItem = this.sfpProjectConfig.getWorkItemGivenBranch(

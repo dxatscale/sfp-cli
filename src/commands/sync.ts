@@ -12,6 +12,7 @@ import { WorkItem } from '../types/WorkItem';
 import PulSourceWorkflow from '../workflows/source/PullSourceWorkflow';
 import SourceStatusDisplayer from '../impl/displayer/SourceStatusDisplayer';
 import SourceTrackingReset from '../impl/sfdxwrappers/SourceTrackingReset';
+import SourceStatusWorkflow from '../workflows/source/SourceStatusWorkflow';
 
 export default class Sync extends CommandsWithInitCheck {
   static description = 'sync changes effortlessly either with repository or development environment'
@@ -19,7 +20,7 @@ export default class Sync extends CommandsWithInitCheck {
   static flags = {
     help: flags.help({char: 'h'})
   }
-  static args = [{name: 'file'}]
+
   workItem: WorkItem;
 
   async executeCommand() {
@@ -81,11 +82,9 @@ export default class Sync extends CommandsWithInitCheck {
 
 
       // Determine direction
-      cli.action.start(`  Analyzing Changes in ${COLOR_KEY_VALUE(devOrg)}`);
-      const sourceStatusResult = await new SourceStatus(devOrg).exec(true);
-      cli.action.stop();
+      let statusWorkflow = new SourceStatusWorkflow(devOrg);
+      let sourceStatusResult = await statusWorkflow.execute();
 
-      new SourceStatusDisplayer(sourceStatusResult).display();
 
       let isLocalChanges: boolean = false;
       let isRemoteChanges: boolean = false;

@@ -19,7 +19,7 @@ $ npm install -g @dxatscale/sfp-cli
 $ sfp COMMAND
 running command...
 $ sfp (-v|--version|version)
-@dxatscale/sfp-cli/0.0.24 darwin-x64 node-v14.16.1
+@dxatscale/sfp-cli/0.0.25 darwin-x64 node-v14.16.1
 $ sfp --help [COMMAND]
 USAGE
   $ sfp COMMAND
@@ -30,9 +30,9 @@ USAGE
 <!-- commands -->
 * [`sfp help [COMMAND]`](#sfp-help-command)
 * [`sfp init [CALLER] [MODE]`](#sfp-init-caller-mode)
-* [`sfp org [CALLER] [MODE]`](#sfp-org-caller-mode)
-* [`sfp sync [FILE]`](#sfp-sync-file)
-* [`sfp work [FILE]`](#sfp-work-file)
+* [`sfp org`](#sfp-org)
+* [`sfp sync`](#sfp-sync)
+* [`sfp work`](#sfp-work)
 
 ## `sfp help [COMMAND]`
 
@@ -63,47 +63,47 @@ OPTIONS
   -h, --help  show CLI help
 ```
 
-_See code: [src/commands/init.ts](https://github.com/dxatscale/sfp-cli/blob/v0.0.24/src/commands/init.ts)_
+_See code: [src/commands/init.ts](https://github.com/dxatscale/sfp-cli/blob/v0.0.25/src/commands/init.ts)_
 
-## `sfp org [CALLER] [MODE]`
+## `sfp org`
 
 guided workflows to help with developer orgs
 
 ```
 USAGE
-  $ sfp org [CALLER] [MODE]
+  $ sfp org
 
 OPTIONS
   -h, --help  show CLI help
 ```
 
-_See code: [src/commands/org.ts](https://github.com/dxatscale/sfp-cli/blob/v0.0.24/src/commands/org.ts)_
+_See code: [src/commands/org.ts](https://github.com/dxatscale/sfp-cli/blob/v0.0.25/src/commands/org.ts)_
 
-## `sfp sync [FILE]`
+## `sfp sync`
 
 sync changes effortlessly either with repository or development environment
 
 ```
 USAGE
-  $ sfp sync [FILE]
+  $ sfp sync
 
 OPTIONS
   -h, --help  show CLI help
 ```
 
-_See code: [src/commands/sync.ts](https://github.com/dxatscale/sfp-cli/blob/v0.0.24/src/commands/sync.ts)_
+_See code: [src/commands/sync.ts](https://github.com/dxatscale/sfp-cli/blob/v0.0.25/src/commands/sync.ts)_
 
-## `sfp work [FILE]`
+## `sfp work`
 
 create/switch/submit a workitem
 
 ```
 USAGE
-  $ sfp work [FILE]
+  $ sfp work
 
 OPTIONS
   -h, --help  show CLI help
 ```
 
-_See code: [src/commands/work.ts](https://github.com/dxatscale/sfp-cli/blob/v0.0.24/src/commands/work.ts)_
+_See code: [src/commands/work.ts](https://github.com/dxatscale/sfp-cli/blob/v0.0.25/src/commands/work.ts)_
 <!-- commandsstop -->

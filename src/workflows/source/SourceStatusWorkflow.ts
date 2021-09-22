@@ -25,7 +25,7 @@ export default class SourceStatusWorkflow
       cli.action.stop();
     } catch (error) {
       cli.action.stop();
-      return "Missing DevOrg";
+      throw new Error("Missing DevOrg");
     }
 
     const conflicts = result.filter((elem) =>
@@ -42,6 +42,16 @@ export default class SourceStatusWorkflow
         elem.state = elem.state.replace(/\(Conflict\)$/, "");
         return elem;
       });
+
+
+
+     statusResult = result.map((elem)=>{
+      if(elem.fullName.includes("/"))
+        {
+         elem["parentFolder"]=elem.fullName.split("/")[0];
+        }
+        return elem;
+     });
 
     new SourceStatusDisplayer(statusResult).display();
 

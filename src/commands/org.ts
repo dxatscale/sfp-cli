@@ -25,7 +25,7 @@ export default class Org extends CommandsWithInitCheck {
     help: flags.help({ char: "h" }),
   };
 
-  static args = [{ name: "caller" }, { name: "mode" }];
+
 
   protected async executeCommand(): Promise<any> {
     let orgCommandSelected;
