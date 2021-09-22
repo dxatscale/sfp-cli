@@ -28,21 +28,6 @@ export default class SourceStatusWorkflow
       throw new Error("Missing DevOrg");
     }
 
-    const conflicts = result.filter((elem) =>
-      elem.state.endsWith("(Conflict)")
-    );
-
-    if (conflicts.length > 0) {
-      await this.conflictsHandler(conflicts);
-    }
-
-     statusResult = result
-      .filter((elem) => !elem.state.startsWith("Local"))
-      .map((elem) => {
-        elem.state = elem.state.replace(/\(Conflict\)$/, "");
-        return elem;
-      });
-
 
 
      statusResult = result.map((elem)=>{
@@ -59,22 +44,5 @@ export default class SourceStatusWorkflow
   }
 
 
-  private async conflictsHandler(conflicts: any) {
-   new SourceStatusDisplayer(conflicts).display();
-    SFPLogger.log(
-      "Source conflict(s) detected. Verify that you want to keep the remote versions",
-      LoggerLevel.WARN
-    );
-    const getConfirmationForOverwrite = await inquirer.prompt([
-      {
-        type: "input",
-        name: "overwrite",
-        message: "To forcibly overwrite local changes, type force",
-      },
-    ]);
 
-    if (getConfirmationForOverwrite.overwrite !== "force") {
-      throw new Error("Source conflict(s) detected. Abandoning...");
-    }
-  }
 }
