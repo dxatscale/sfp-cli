@@ -188,6 +188,8 @@ export default class PulSourceWorkflow {
     cli.action.start("  Moving source components...");
 
     for (let instruction of mergePlan) {
+      let isDeleteComponents: boolean = true;
+
       let components = pullResult.pulledSource.filter((component) => {
         //Handle Bundles
         if (component.fullName.includes("/")) {
@@ -250,13 +252,21 @@ export default class PulSourceWorkflow {
           });
         }
 
+        let mergedXmlFilePath: string = convertResult.converted[0].xml;
         if (this.isXmlFileSuffixDuped(convertResult.converted[0].xml)) {
-          this.dedupeXmlFileSuffix(convertResult.converted[0].xml);
+          mergedXmlFilePath = this.dedupeXmlFileSuffix(convertResult.converted[0].xml);
+        }
+
+        if (mergedXmlFilePath === filePath) {
+          // If the merged xml filepath and pulled xml filepath is the same, do not delete the original components
+          isDeleteComponents = false;
         }
       }
 
-      for (let component of components) {
-        fs.unlinkSync(component.filePath);
+      if (isDeleteComponents) {
+        for (let component of components) {
+          fs.unlinkSync(component.filePath);
+        }
       }
 
       //Clean up src-temp of empty directories
@@ -270,9 +280,11 @@ export default class PulSourceWorkflow {
     return xmlFile.match(/-meta\.xml/g)?.length === 2;
   }
 
-  private dedupeXmlFileSuffix(xmlFile: string): void {
+  private dedupeXmlFileSuffix(xmlFile: string): string {
     let deduped = xmlFile.replace(/-meta\.xml/, "");
     fs.renameSync(xmlFile, deduped);
+
+    return deduped;
   }
 
   private async getMoveAction(instruction: Instruction) {
