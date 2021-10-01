@@ -13,6 +13,7 @@ import PulSourceWorkflow from '../workflows/source/PullSourceWorkflow';
 import SourceStatusDisplayer from '../impl/displayer/SourceStatusDisplayer';
 import SourceTrackingReset from '../impl/sfdxwrappers/SourceTrackingReset';
 import SourceStatusWorkflow from '../workflows/source/SourceStatusWorkflow';
+import CommitWorkflow from "../workflows/git/CommitWorkflow";
 
 export default class Sync extends CommandsWithInitCheck {
   static description = 'sync changes effortlessly either with repository or development environment'
@@ -27,24 +28,24 @@ export default class Sync extends CommandsWithInitCheck {
 
     let option = await this.promptAndCaptureOption();
 
+    const git = simpleGit();
     if(option === 'sync-git')
     {
       let args=new Array<string>();
       args.push("inner");
 
-      const git = simpleGit();
       SFPLogger.log("Updating remote refs...");
       await git.fetch();
 
       const currentBranch = (await git.branch()).current;
 
-      SFPLogger.log("Updating local branch with remote tracking branch");
+      SFPLogger.log(`Updating local branch with remote tracking branch origin/${currentBranch}`);
       await git.pull("origin", currentBranch);
 
       const workItem = this.sfpProjectConfig.getWorkItemGivenBranch(currentBranch);
       const parentBranch = workItem.trackingBranch;
 
-      SFPLogger.log("Updating local branch with parent branch");
+      SFPLogger.log(`Updating local branch with parent branch origin/${parentBranch}`);
       await git.pull("origin", parentBranch);
 
       let response = await inquirer.prompt({
@@ -53,14 +54,16 @@ export default class Sync extends CommandsWithInitCheck {
         message: "Push to remote tracking branch?"
       });
 
-      if (response.isPush) await git.push("origin", currentBranch);
+      if (response.isPush) {
+        SFPLogger.log(`Pushing to origin/${currentBranch}`);
+        await git.push("origin", currentBranch);
+      }
     }
     else if(option === 'sync-org')
     {
       let args=new Array<string>();
       args.push("inner");
 
-      const git: SimpleGit = simpleGit();
       let branches = await git.branch();
       this.workItem = this.sfpProjectConfig.getWorkItemGivenBranch(branches.current);
 
@@ -133,6 +136,11 @@ export default class Sync extends CommandsWithInitCheck {
         if (syncDirection.direction === "overwriteLocal") {
           let pullWorkflow:PulSourceWorkflow = new PulSourceWorkflow(devOrg,sourceStatusResult);
           await pullWorkflow.execute();
+
+          await new CommitWorkflow(git, this.sfpProjectConfig).execute();
+
+          // Push any non-conflicting locally added components
+          await this.PushSourceToDevOrg(devOrg);
         } else if (syncDirection.direction === "overwriteRemote") {
           await this.PushSourceToDevOrg(devOrg);
         } else {
@@ -144,6 +152,9 @@ export default class Sync extends CommandsWithInitCheck {
         let pullWorkflow:PulSourceWorkflow = new PulSourceWorkflow(devOrg,sourceStatusResult);
         await pullWorkflow.execute();
 
+        await new CommitWorkflow(git, this.sfpProjectConfig).execute();
+
+
         await this.PushSourceToDevOrg(devOrg);
       } else if (isLocalChanges) {
         await this.PushSourceToDevOrg(devOrg);
@@ -151,6 +162,10 @@ export default class Sync extends CommandsWithInitCheck {
 
         let pullWorkflow:PulSourceWorkflow = new PulSourceWorkflow(devOrg,sourceStatusResult);
         await pullWorkflow.execute();
+
+        await new CommitWorkflow(git, this.sfpProjectConfig).execute();
+
+
       }
       else
       {
@@ -160,7 +175,6 @@ export default class Sync extends CommandsWithInitCheck {
 
 
   }
-
 
   private async PushSourceToDevOrg(devOrg: string) {
     try {
