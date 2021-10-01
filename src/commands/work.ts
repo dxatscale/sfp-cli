@@ -4,6 +4,7 @@ import NewWorkItemWorkflow from '../workflows/workitems/NewWorkItemWorkflow'
 import SFPLogger, { COLOR_HEADER } from "@dxatscale/sfpowerscripts.core/lib/logger/SFPLogger";
 import CommandsWithInitCheck from '../sharedCommandBase/CommandsWithInitCheck';
 import DeleteWorkItemWorkflow from '../workflows/workitems/DeleteWorkItemWorkflow';
+import SubmitWorkItemWorkflow from '../workflows/workitems/SubmitWorkItemWorkflow';
 
 export default class WorkItem extends CommandsWithInitCheck {
   static description = 'create/switch/submit a workitem'
@@ -30,10 +31,13 @@ export default class WorkItem extends CommandsWithInitCheck {
       let newWorkItemWorkflow: NewWorkItemWorkflow = new NewWorkItemWorkflow(this.sfpProjectConfig, this.config.configDir);
       await newWorkItemWorkflow.execute();
     }
-    else if (topic == WorkItemOperations.DELETE)
+    else if (topic === WorkItemOperations.DELETE)
     {
       let deleteWorkItemWorkflow = new DeleteWorkItemWorkflow(this.sfpProjectConfig,this.config.configDir);
       await deleteWorkItemWorkflow.execute();
+    } else if (topic === WorkItemOperations.SUBMIT)
+    {
+      await new SubmitWorkItemWorkflow(this.sfpProjectConfig).execute();
     }
 
   }
