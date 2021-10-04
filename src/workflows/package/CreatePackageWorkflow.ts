@@ -1,3 +1,4 @@
+import { string } from "@oclif/parser/lib/flags";
 import inquirer = require("inquirer");
 inquirer.registerPrompt(
   "autocomplete",
@@ -13,7 +14,7 @@ export default class CreatePackageWorkflow {
     private readonly projectConfig
   ) {}
 
-  public async createNewPackage() {
+  public async createNewPackage():Promise<SFDXPackage> {
     const nameOfExistingPackages = this.getNameOfPackages();
 
     const newPackage = await inquirer.prompt([
@@ -62,12 +63,12 @@ export default class CreatePackageWorkflow {
       {
         type: "input",
         name: "version",
-        message: "Version of the package e.g. 1.0.0.0",
-        default: "1.0.0.0",
+        message: "Version of the package e.g. 1.0.0",
+        default: "1.0.0",
         validate: (input, answers) => {
-          let match = input.match(/^[0-9]+\.[0-9]+\.[0-9]+(\.[0-9]+|\.NEXT)?$/);
+          let match = input.match(/^[0-9]+\.[0-9]+\.[0-9]+\$/);
           if (!match) {
-            return `Version must be in the format 1.0.0.0 or 1.0.0.NEXT`;
+            return `Version must be in the format X.Y.Z e.g: 1.0.0`;
           } else return true;
         }
       },
@@ -92,8 +93,10 @@ export default class CreatePackageWorkflow {
       descriptor: {
         path: path.join("src", newPackage.name),
         package: newPackage.name,
-        versionNumber: newPackage.version
+        versionNumber: (newPackage.type==='unlocked' || newPackage.type==='org-unlocked')?newPackage.version+".NEXT":newPackage.version+".0"
       },
+      type: newPackage.type,
+      description:newPackage.description,
       indexOfPackage: indexOfNewPackage
     };
   }
@@ -108,5 +111,18 @@ export default class CreatePackageWorkflow {
     return nameOfPackages;
   }
 
+
+}
+
+export interface SFDXPackage
+{
+    descriptor: {
+      path: string,
+      package: string,
+      versionNumber: string,
+    },
+    type: string,
+    description:string,
+    indexOfPackage: number
 
 }
