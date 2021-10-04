@@ -49,6 +49,17 @@ export default class CreatePackageWorkflow {
         ],
       },
       {
+        type: "list",
+        name: "packageType",
+        message: "Type of the package",
+        choices: [
+          { name: "Unlocked", value: "unlocked" },
+          { name: "Org-Dependent-Unlocked", value: "org-unlocked" },
+          { name: "Source Package", value: "source" },
+          { name: "Data Package", value: "data" },
+        ],
+      },
+      {
         type: "input",
         name: "version",
         message: "Version of the package e.g. 1.0.0.0",
@@ -59,7 +70,17 @@ export default class CreatePackageWorkflow {
             return `Version must be in the format 1.0.0.0 or 1.0.0.NEXT`;
           } else return true;
         }
-      }
+      },
+      {
+        type: "input",
+        name: "description",
+        message: "Please enter a description for this package",
+        validate: (input, answers) => {
+          if (!input) return "Package Descriptions cannot be empty. Press <enter> to retry";
+          else return true;
+        }
+      },
+
     ]);
 
     let indexOfNewPackage = nameOfExistingPackages.findIndex(
