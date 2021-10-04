@@ -124,7 +124,7 @@ export default class CreateAnOrgWorkflow
     type: OrgType
   ):Promise<string> {
 
-  
+
     switch (type) {
       case OrgType.SCRATCHORG:
         cli.action.start(` Creating Org...`);
@@ -150,6 +150,7 @@ export default class CreateAnOrgWorkflow
           )
         );
        throw new Error("Not implemented, Please choose another option and try again");
+    }
   }
 
 
