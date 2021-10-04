@@ -9,34 +9,16 @@ import CommitWorkflow from "../git/CommitWorkflow";
 import cli from "cli-ux";
 import SourcePush from "../../impl/sfdxwrappers/SourcePush";
 import PushErrorDisplayer from "@dxatscale/sfpowerscripts.core/lib/display/PushErrorDisplayer";
+import PushSourceToOrg from "../../impl/sfpcommands/PushSourceToOrg";
 
 export default class SyncOrg {
 
-  constructor(private git: SimpleGit, private sfpProjectConfig: SfpProjectConfig) {}
+  constructor(private git: SimpleGit, private sfpProjectConfig: SfpProjectConfig, private devOrg: string) {}
 
   async execute() {
-    let branches = await this.git.branch();
-    const workItem = this.sfpProjectConfig.getWorkItemGivenBranch(branches.current);
-
-
-
-    //Only select org if there is no org available
-    let devOrg;
-    if(workItem?.defaultDevOrg == null)
-    {
-    SFPLogger.log(`  ${COLOR_WARNING(`Work Item not intialized, always utilize ${COLOR_KEY_MESSAGE(`sfp work`)} to intialize work`)}`)
-    devOrg = await new PickAnOrgWorkflow().getADevOrg();
-    //Reset source tracking when user picks up random orgs
-    //await new SourceTrackingReset(devOrg).exec(true);
-    }
-    else
-    {
-      devOrg = workItem.defaultDevOrg
-    }
-
 
     // Determine direction
-    let statusWorkflow = new SourceStatusWorkflow(devOrg);
+    let statusWorkflow = new SourceStatusWorkflow(this.devOrg);
     let sourceStatusResult = await statusWorkflow.execute();
 
 
@@ -85,33 +67,33 @@ export default class SyncOrg {
       });
 
       if (syncDirection.direction === "overwriteLocal") {
-        let pullWorkflow: PullSourceWorkflow = new PullSourceWorkflow(devOrg,sourceStatusResult);
+        let pullWorkflow: PullSourceWorkflow = new PullSourceWorkflow(this.devOrg,sourceStatusResult);
         await pullWorkflow.execute();
 
         await new CommitWorkflow(this.git, this.sfpProjectConfig).execute();
 
         // Push any non-conflicting locally added components
-        await this.PushSourceToDevOrg(devOrg);
+        await new PushSourceToOrg(this.devOrg).exec();
       } else if (syncDirection.direction === "overwriteRemote") {
-        await this.PushSourceToDevOrg(devOrg);
+        await new PushSourceToOrg(this.devOrg).exec();
       } else {
         return;
       }
 
     } else if (isLocalChanges && isRemoteChanges) {
 
-      let pullWorkflow: PullSourceWorkflow = new PullSourceWorkflow(devOrg,sourceStatusResult);
+      let pullWorkflow: PullSourceWorkflow = new PullSourceWorkflow(this.devOrg,sourceStatusResult);
       await pullWorkflow.execute();
 
       await new CommitWorkflow(this.git, this.sfpProjectConfig).execute();
 
 
-      await this.PushSourceToDevOrg(devOrg);
+      await new PushSourceToOrg(this.devOrg).exec();
     } else if (isLocalChanges) {
-      await this.PushSourceToDevOrg(devOrg);
+      await new PushSourceToOrg(this.devOrg).exec();
     } else if (isRemoteChanges) {
 
-      let pullWorkflow: PullSourceWorkflow = new PullSourceWorkflow(devOrg,sourceStatusResult);
+      let pullWorkflow: PullSourceWorkflow = new PullSourceWorkflow(this.devOrg,sourceStatusResult);
       await pullWorkflow.execute();
 
       await new CommitWorkflow(this.git, this.sfpProjectConfig).execute();
@@ -121,17 +103,6 @@ export default class SyncOrg {
     else
     {
      SFPLogger.log(`  ${COLOR_KEY_MESSAGE(`No Changes Detected... `)}`);
-    }
-  }
-
-  private async PushSourceToDevOrg(devOrg: string) {
-    try {
-      cli.action.start(`  Pushing source to org ${COLOR_KEY_VALUE(devOrg)}`);
-      await new SourcePush(devOrg, true).exec();
-      cli.action.stop();
-    } catch (error) {
-      PushErrorDisplayer.printMetadataFailedToPush(JSON.parse(error.message), new ConsoleLogger());
-      throw new Error("Failed to push source");
     }
   }
 }

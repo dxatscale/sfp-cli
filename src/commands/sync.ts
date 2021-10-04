@@ -24,8 +24,6 @@ export default class Sync extends CommandsWithInitCheck {
     help: flags.help({char: 'h'})
   }
 
-  workItem: WorkItem;
-
   async executeCommand() {
 
     let option = await this.promptAndCaptureOption();
@@ -37,7 +35,21 @@ export default class Sync extends CommandsWithInitCheck {
     }
     else if(option === 'sync-org')
     {
-      await new SyncOrg(git, this.sfpProjectConfig).execute();
+      const branches = await git.branch();
+      const workItem = this.sfpProjectConfig.getWorkItemGivenBranch(branches.current);
+
+      //Only select org if there is no org available
+      let devOrg: string;
+      if(workItem?.defaultDevOrg == null) {
+        SFPLogger.log(`  ${COLOR_WARNING(`Work Item not intialized, always utilize ${COLOR_KEY_MESSAGE(`sfp work`)} to intialize work`)}`)
+        devOrg = await new PickAnOrgWorkflow().getADevOrg();
+        //Reset source tracking when user picks up random orgs
+        //await new SourceTrackingReset(devOrg).exec(true);
+      } else {
+        devOrg = workItem.defaultDevOrg
+      }
+
+      await new SyncOrg(git, this.sfpProjectConfig, devOrg).execute();
     }
   }
 
