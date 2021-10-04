@@ -15,14 +15,18 @@ import SFPLogger, {
   COLOR_SUCCESS,
 } from "@dxatscale/sfpowerscripts.core/lib/logger/SFPLogger";
 
-import CreatePackageWorkflow from "../package/CreatePackageWorkflow";
+import CreatePackageWorkflow, { SFDXPackage } from "../package/CreatePackageWorkflow";
 import SourcePull from "../../impl/sfdxwrappers/SourcePull";
 import SelectPackageWorkflow from "../package/SelectPackageWorkflow";
 import { isEmpty } from "lodash";
 import cli from "cli-ux";
+import CreateUnlockedPackage from "../../impl/sfdxwrappers/CreateUnlockedPackage";
 
 export default class PullSourceWorkflow {
-  public constructor(private devOrg: string, private sourceStatusResult: any) {}
+  private unlockedPackagesToBeCreated: Array<SFDXPackage>;
+  public constructor(private devOrg: string, private sourceStatusResult: any,private devHub:string) {
+    this.unlockedPackagesToBeCreated = [];
+  }
 
   async execute(): Promise<void> {
     if (this.sourceStatusResult.length === 0) {
@@ -114,6 +118,16 @@ export default class PullSourceWorkflow {
             instruction.destination.push({
               package: newPackage.descriptor.path,
             });
+
+            //For Unlocked Push to array, others push  to type
+            if (
+              newPackage.type === "unlocked" ||
+              newPackage.type === "org-unlocked"
+            )
+              this.unlockedPackagesToBeCreated.push(newPackage);
+            else newPackage.descriptor["type"] = newPackage.type;
+
+            newPackagesDirectories.push(newPackage.descriptor.path);
           } else {
             throw new Error(`Unrecognised MoveAction ${moveAction}`);
           }
@@ -152,7 +166,17 @@ export default class PullSourceWorkflow {
           newPackage.indexOfPackage,
           projectConfig
         );
+
+        //For Unlocked Push to array, others push  to type
+        if (
+          newPackage.type === "unlocked" ||
+          newPackage.type === "org-unlocked"
+        )
+          this.unlockedPackagesToBeCreated.push(newPackage);
+        else newPackage.descriptor["type"] = newPackage.type;
+
         newPackagesDirectories.push(newPackage.descriptor.path);
+
         instruction.destination.push({ package: newPackage.descriptor.path });
       } else if (moveAction === MoveAction.EXISTING) {
         let existingPackage = await new SelectPackageWorkflow(
@@ -171,6 +195,8 @@ export default class PullSourceWorkflow {
           instruction,
         });
       }
+      console.log();
+      console.log();
     }
 
     newPackagesDirectories.forEach((dir) => fs.mkdirpSync(dir));
@@ -254,7 +280,9 @@ export default class PullSourceWorkflow {
 
         let mergedXmlFilePath: string = convertResult.converted[0].xml;
         if (this.isXmlFileSuffixDuped(convertResult.converted[0].xml)) {
-          mergedXmlFilePath = this.dedupeXmlFileSuffix(convertResult.converted[0].xml);
+          mergedXmlFilePath = this.dedupeXmlFileSuffix(
+            convertResult.converted[0].xml
+          );
         }
 
         if (mergedXmlFilePath === filePath) {
@@ -274,6 +302,24 @@ export default class PullSourceWorkflow {
     }
 
     cli.action.stop();
+
+    for (const unlockedPackage of this.unlockedPackagesToBeCreated) {
+      cli.action.start(` Creating unlocked package ${unlockedPackage.descriptor.package}...`);
+      await this.createNewPackage({type:unlockedPackage.type,description:unlockedPackage.description,name:unlockedPackage.descriptor.package,path:unlockedPackage.descriptor.path});
+      cli.action.stop();
+    }
+  }
+
+ async createNewPackage(unlockedPackage: {type:string,description:string, path:string,name:string}) {
+   try
+   {
+    let createUnlockedPackage = new CreateUnlockedPackage(this.devHub,unlockedPackage);
+    await createUnlockedPackage.exec(true);
+   }catch(error)
+   {
+
+   }
+
   }
 
   private isXmlFileSuffixDuped(xmlFile: string): boolean {
@@ -291,7 +337,7 @@ export default class PullSourceWorkflow {
     let moveAction = await inquirer.prompt({
       type: "list",
       name: "action",
-      message: `Select a package for ${instruction.type} ${instruction.fullName}`,
+      message: `Select a package for ${COLOR_KEY_MESSAGE(instruction.type)} ${COLOR_KEY_MESSAGE(instruction.fullName)}`,
       choices: this.getChoicesForMovingMetadata(instruction),
     });
     return moveAction.action;
@@ -299,30 +345,29 @@ export default class PullSourceWorkflow {
 
   private async removeEmptyDirectories(directory) {
     // lstat does not follow symlinks (in contrast to stat)
-    try{
-    const fileStats = await fs.lstat(directory);
-    if (!fileStats.isDirectory()) {
+    try {
+      const fileStats = await fs.lstat(directory);
+      if (!fileStats.isDirectory()) {
+        return;
+      }
+      let fileNames = await fs.readdir(directory);
+      if (fileNames.length > 0) {
+        const recursiveRemovalPromises = fileNames.map((fileName) =>
+          this.removeEmptyDirectories(path.join(directory, fileName))
+        );
+        await Promise.all(recursiveRemovalPromises);
+
+        // re-evaluate fileNames; after deleting subdirectory
+        // we may have parent directory empty now
+        fileNames = await fs.readdir(directory);
+      }
+
+      if (fileNames.length === 0) {
+        await fs.rmdir(directory);
+      }
+    } catch (error) {
       return;
     }
-    let fileNames = await fs.readdir(directory);
-    if (fileNames.length > 0) {
-      const recursiveRemovalPromises = fileNames.map((fileName) =>
-        this.removeEmptyDirectories(path.join(directory, fileName))
-      );
-      await Promise.all(recursiveRemovalPromises);
-
-      // re-evaluate fileNames; after deleting subdirectory
-      // we may have parent directory empty now
-      fileNames = await fs.readdir(directory);
-    }
-
-    if (fileNames.length === 0) {
-        await fs.rmdir(directory);
-    }
-   }catch(error)
-   {
-     return;
-   }
   }
 
   private getChoicesForMovingMetadata(metadata) {

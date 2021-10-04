@@ -67,7 +67,7 @@ export default class SyncOrg {
       });
 
       if (syncDirection.direction === "overwriteLocal") {
-        let pullWorkflow: PullSourceWorkflow = new PullSourceWorkflow(this.devOrg,sourceStatusResult);
+        let pullWorkflow: PullSourceWorkflow = new PullSourceWorkflow(this.devOrg,sourceStatusResult,this.sfpProjectConfig.defaultDevHub);
         await pullWorkflow.execute();
 
         await new CommitWorkflow(this.git, this.sfpProjectConfig).execute();
@@ -82,7 +82,7 @@ export default class SyncOrg {
 
     } else if (isLocalChanges && isRemoteChanges) {
 
-      let pullWorkflow: PullSourceWorkflow = new PullSourceWorkflow(this.devOrg,sourceStatusResult);
+      let pullWorkflow: PullSourceWorkflow = new PullSourceWorkflow(this.devOrg,sourceStatusResult,this.sfpProjectConfig.defaultDevHub);
       await pullWorkflow.execute();
 
       await new CommitWorkflow(this.git, this.sfpProjectConfig).execute();
@@ -93,7 +93,7 @@ export default class SyncOrg {
       await new PushSourceToOrg(this.devOrg).exec();
     } else if (isRemoteChanges) {
 
-      let pullWorkflow: PullSourceWorkflow = new PullSourceWorkflow(this.devOrg,sourceStatusResult);
+      let pullWorkflow: PullSourceWorkflow = new PullSourceWorkflow(this.devOrg,sourceStatusResult,this.sfpProjectConfig.defaultDevHub);
       await pullWorkflow.execute();
 
       await new CommitWorkflow(this.git, this.sfpProjectConfig).execute();
