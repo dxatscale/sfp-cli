@@ -137,7 +137,6 @@ export default class CreateAnOrgWorkflow
           )
         );
         return result.username;
-        break;
       case OrgType.SANDBOX:
         SFPLogger.log(
           COLOR_KEY_MESSAGE(
@@ -145,7 +144,6 @@ export default class CreateAnOrgWorkflow
           )
         );
        throw new Error("Not implemented, Please choose another option and try again");
-       break;
     }
 
   }
