@@ -18,25 +18,18 @@ export default class SourceStatusWorkflow
 
   public async execute() {
     let statusResult;
-    let result;
-    try {
-      cli.action.start(`  Checking for changes in  dev org ${this.targetOrg}..`);
-      result = await new SourceStatus(this.targetOrg).exec(true);
-      cli.action.stop();
-    } catch (error) {
-      cli.action.stop();
-      throw new Error("Missing DevOrg");
-    }
 
+    cli.action.start(`  Checking for changes in  dev org ${this.targetOrg}..`);
+    let result = await new SourceStatus(this.targetOrg).exec(true);
+    cli.action.stop();
 
-
-     statusResult = result.map((elem)=>{
-      if(elem.fullName.includes("/"))
-        {
-         elem["parentFolder"]=elem.fullName.split("/")[0];
-        }
-        return elem;
-     });
+    statusResult = result.map((elem)=>{
+    if(elem.fullName.includes("/"))
+      {
+        elem["parentFolder"]=elem.fullName.split("/")[0];
+      }
+      return elem;
+    });
 
     new SourceStatusDisplayer(statusResult).display();
 

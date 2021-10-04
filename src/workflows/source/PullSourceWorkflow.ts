@@ -21,7 +21,7 @@ import SelectPackageWorkflow from "../package/SelectPackageWorkflow";
 import { isEmpty } from "lodash";
 import cli from "cli-ux";
 
-export default class PulSourceWorkflow {
+export default class PullSourceWorkflow {
   public constructor(private devOrg: string, private sourceStatusResult: any) {}
 
   async execute(): Promise<void> {
