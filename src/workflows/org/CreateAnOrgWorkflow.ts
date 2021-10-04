@@ -124,8 +124,7 @@ export default class CreateAnOrgWorkflow
     type: OrgType
   ):Promise<string> {
 
-    try
-    {
+  
     switch (type) {
       case OrgType.SCRATCHORG:
         cli.action.start(` Creating Org...`);
@@ -144,17 +143,13 @@ export default class CreateAnOrgWorkflow
           )
         );
         return result.username;
-    }
-    }
-    catch(error)
-    {
-      SFPLogger.log(
-        COLOR_ERROR(
-          ` Unable to create an org at this point in time, Try again later`
-        )
-      );
-      SFPLogger.log(error);
-    }
+      case OrgType.SANDBOX:
+        SFPLogger.log(
+          COLOR_KEY_MESSAGE(
+            `  Coming soon`
+          )
+        );
+       throw new Error("Not implemented, Please choose another option and try again");
   }
 
 
