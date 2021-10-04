@@ -6,7 +6,7 @@ import { SfpProjectConfig } from "../../types/SfpProjectConfig";
 import { WorkItem } from "../../types/WorkItem";
 import { isEmpty } from "lodash";
 import cli from "cli-ux";
-import SFPLogger, { COLOR_KEY_MESSAGE, COLOR_SUCCESS, LoggerLevel } from "@dxatscale/sfpowerscripts.core/lib/logger/SFPLogger";
+import SFPLogger, { COLOR_ERROR, COLOR_KEY_MESSAGE, COLOR_SUCCESS, LoggerLevel } from "@dxatscale/sfpowerscripts.core/lib/logger/SFPLogger";
 import InstalledAritfactsFetcher from "@dxatscale/sfpowerscripts.core/lib/artifacts/InstalledAritfactsFetcher";
 import InstalledArtifactsDisplayer from "@dxatscale/sfpowerscripts.core/lib/display/InstalledArtifactsDisplayer";
 import InstalledPackagesFetcher from "@dxatscale/sfpowerscripts.core/lib/package/installedPackages/InstalledPackagesFetcher";
@@ -14,6 +14,7 @@ import InstalledPackageDisplayer from "@dxatscale/sfpowerscripts.core/lib/displa
 import PoolFetchImpl from "../../impl/pool/PoolFetchImpl";
 import CreateScratchOrgImpl from "@dxatscale/sfpowerscripts.core/lib/sfdxwrappers/CreateScratchOrgImpl";
 import OrgOpen from "../../impl/sfdxwrappers/OrgOpen";
+import InstallDependenciesWorkflow from "../package/InstallDependenciesWorkflow";
 
 export default class CreateAnOrgWorkflow
 {
@@ -87,6 +88,7 @@ export default class CreateAnOrgWorkflow
             OrgType.SCRATCHORG
           );
         }
+
       } else {
         let isDevEnvironmentCreationRequested =
           await this.promptForCreatingSandbox();
@@ -101,6 +103,9 @@ export default class CreateAnOrgWorkflow
 
 
     if (createdOrg) {
+
+      await this.installDependencies(createdOrg);
+
       let isOrgToBeOpened =
         await this.promptForNeedForOpeningDevEnvironment();
       if (isOrgToBeOpened) {
@@ -117,8 +122,10 @@ export default class CreateAnOrgWorkflow
     id:string,
     sfpProjectConfig: SfpProjectConfig,
     type: OrgType
-  ) {
+  ):Promise<string> {
 
+    try
+    {
     switch (type) {
       case OrgType.SCRATCHORG:
         cli.action.start(` Creating Org...`);
@@ -145,7 +152,15 @@ export default class CreateAnOrgWorkflow
         );
        throw new Error("Not implemented, Please choose another option and try again");
     }
-
+    catch(error)
+    {
+      SFPLogger.log(
+        COLOR_ERROR(
+          ` Unable to create an org at this point in time, Try again later`
+        )
+      );
+      SFPLogger.log(error);
+    }
   }
 
 
@@ -249,6 +264,12 @@ export default class CreateAnOrgWorkflow
     }
   }
 
+  private async installDependencies(username:string)
+  {
+    let installDependenciesWorkflow = new InstallDependenciesWorkflow(this.sfpProjectConfig,username);
+    await installDependenciesWorkflow.execute();
+
+  }
 
   private async promptForPoolSelection(
     pools: Array<any>,
