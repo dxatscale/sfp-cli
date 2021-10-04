@@ -13,6 +13,7 @@ export default class CommitWorkflow {
     const paths = projectConfig.packageDirectories
       .filter((elem) => !elem.default)
       .map((elem) => elem.path);
+    paths.push("sfdx-project.json");
 
     await this.git.add(paths);
 
