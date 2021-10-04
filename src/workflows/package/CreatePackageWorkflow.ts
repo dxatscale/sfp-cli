@@ -66,7 +66,7 @@ export default class CreatePackageWorkflow {
         message: "Version of the package e.g. 1.0.0",
         default: "1.0.0",
         validate: (input, answers) => {
-          let match = input.match(/^[0-9]+\.[0-9]+\.[0-9]+\$/);
+          let match = input.match(/^[0-9]+\.[0-9]+\.[0-9]+$/);
           if (!match) {
             return `Version must be in the format X.Y.Z e.g: 1.0.0`;
           } else return true;
@@ -93,9 +93,9 @@ export default class CreatePackageWorkflow {
       descriptor: {
         path: path.join("src", newPackage.name),
         package: newPackage.name,
-        versionNumber: (newPackage.type==='unlocked' || newPackage.type==='org-unlocked')?newPackage.version+".NEXT":newPackage.version+".0"
+        versionNumber: (newPackage.packageType==='unlocked' || newPackage.type==='org-unlocked')?newPackage.version+".NEXT":newPackage.version+".0"
       },
-      type: newPackage.type,
+      type: newPackage.packageType,
       description:newPackage.description,
       indexOfPackage: indexOfNewPackage
     };

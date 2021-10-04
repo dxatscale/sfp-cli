@@ -195,6 +195,8 @@ export default class PullSourceWorkflow {
           instruction,
         });
       }
+      console.log();
+      console.log();
     }
 
     newPackagesDirectories.forEach((dir) => fs.mkdirpSync(dir));
@@ -335,7 +337,7 @@ export default class PullSourceWorkflow {
     let moveAction = await inquirer.prompt({
       type: "list",
       name: "action",
-      message: `Select a package for ${instruction.type} ${instruction.fullName}`,
+      message: `Select a package for ${COLOR_KEY_MESSAGE(instruction.type)} ${COLOR_KEY_MESSAGE(instruction.fullName)}`,
       choices: this.getChoicesForMovingMetadata(instruction),
     });
     return moveAction.action;
