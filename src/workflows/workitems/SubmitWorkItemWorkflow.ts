@@ -9,6 +9,7 @@ import SyncOrg from "../sync/SyncOrg";
 import PushSourceToOrg from "../../impl/sfpcommands/PushSourceToOrg";
 import PickAnOrgWorkflow from "../org/PickAnOrgWorkflow";
 import child_process = require('child_process');
+import RepoProviderSelector from "../../impl/repoprovider/RepoProviderSelector";
 
 export default class SubmitWorkItemWorkflow {
   private devOrg: string;
@@ -38,8 +39,13 @@ export default class SubmitWorkItemWorkflow {
     SFPLogger.log(`Pushing to origin/${currentBranch}`);
     await git.push("origin", currentBranch);
 
-    if (await this.isCreatePullRequest() && await this.isGitHubCliInstalled()) {
-      child_process.execSync("gh pr create", {stdio: 'inherit', encoding: 'utf8'});
+    if (await this.isCreatePullRequest()) {
+      const repoProvider = RepoProviderSelector.getRepoProvider(this.sfpProjectConfig.repoProvider);
+      if (repoProvider.isCLIInstalled()) {
+        repoProvider.raiseAPullRequest(this.sfpProjectConfig.getWorkItemGivenBranch(currentBranch));
+      } else {
+        SFPLogger.log(`Install the ${this.sfpProjectConfig.repoProvider} CLI to enable creation of pull requests`, LoggerLevel.ERROR);
+      }
     }
   }
 
@@ -104,17 +110,5 @@ export default class SubmitWorkItemWorkflow {
     })
 
     return answers.isCreatePullRequest;
-  }
-
-  private isGitHubCliInstalled(): boolean {
-    let isGitHubCliInstalled: boolean;
-    try {
-      child_process.execSync("gh --version", {stdio: 'pipe', encoding: 'utf8'});
-      isGitHubCliInstalled = true;
-    } catch (error) {
-      isGitHubCliInstalled = false;
-      SFPLogger.log("Install the GitHub CLI to enable creation of pull requests", LoggerLevel.ERROR);
-    }
-    return isGitHubCliInstalled;
   }
 }
