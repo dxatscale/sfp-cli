@@ -79,6 +79,9 @@ export default class NewWorkItemWorkflow {
         )
       );
       this.workItem.branch = branchName;
+
+      SFPLogger.log(`Creating remote branch origin/${branchName}`);
+      await git.push("origin", branchName);
     } else if (branchChoices[0].value === "switch") {
       await git.checkout(branchName);
       SFPLogger.log(
