@@ -1,6 +1,6 @@
 import { SfpProjectConfig } from "../../types/SfpProjectConfig";
 import simpleGit, { SimpleGit } from "simple-git";
-import SFPLogger, { COLOR_KEY_MESSAGE, COLOR_WARNING } from "@dxatscale/sfpowerscripts.core/lib/logger/SFPLogger";
+import SFPLogger, { COLOR_KEY_MESSAGE, COLOR_WARNING, LoggerLevel } from "@dxatscale/sfpowerscripts.core/lib/logger/SFPLogger";
 import CommitWorkflow from "../git/CommitWorkflow";
 import SourceStatusWorkflow from "../source/SourceStatusWorkflow";
 import SyncGit from "../sync/SyncGit";
@@ -8,6 +8,8 @@ import inquirer = require('inquirer');
 import SyncOrg from "../sync/SyncOrg";
 import PushSourceToOrg from "../../impl/sfpcommands/PushSourceToOrg";
 import PickAnOrgWorkflow from "../org/PickAnOrgWorkflow";
+import child_process = require('child_process');
+import RepoProviderSelector from "../../impl/repoprovider/RepoProviderSelector";
 
 export default class SubmitWorkItemWorkflow {
   private devOrg: string;
@@ -36,6 +38,15 @@ export default class SubmitWorkItemWorkflow {
     const currentBranch = (await git.branch()).current;
     SFPLogger.log(`Pushing to origin/${currentBranch}`);
     await git.push("origin", currentBranch);
+
+    if (await this.isCreatePullRequest()) {
+      const repoProvider = RepoProviderSelector.getRepoProvider(this.sfpProjectConfig.repoProvider);
+      if (repoProvider.isCLIInstalled()) {
+        repoProvider.raiseAPullRequest(this.sfpProjectConfig.getWorkItemGivenBranch(currentBranch));
+      } else {
+        SFPLogger.log(`Install the ${this.sfpProjectConfig.repoProvider} CLI to enable creation of pull requests`, LoggerLevel.ERROR);
+      }
+    }
   }
 
   private async getDevOrg(git: SimpleGit): Promise<string> {
@@ -89,5 +100,15 @@ export default class SubmitWorkItemWorkflow {
     )
 
     return answers.isPushSourceToOrg;
+  }
+
+  private async isCreatePullRequest(): Promise<boolean> {
+    const answers = await inquirer.prompt({
+      type: "confirm",
+      name: "isCreatePullRequest",
+      message: "Create pull request?"
+    })
+
+    return answers.isCreatePullRequest;
   }
 }
