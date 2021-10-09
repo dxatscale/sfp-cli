@@ -19,6 +19,8 @@ import InstallDependenciesWorkflow from "../package/InstallDependenciesWorkflow"
 export default class CreateAnOrgWorkflow
 {
 
+  private isOrgCreated = false;
+  private isOrgFetched = false;
 
   constructor(private sfpProjectConfig:SfpProjectConfig,private alias?:string)
   {
@@ -28,6 +30,7 @@ export default class CreateAnOrgWorkflow
   public async execute():Promise<string>
   {
     let devHubUserName = this.sfpProjectConfig.defaultDevHub;
+
     let createdOrg;
       let type = await this.promptForOrgTypeSelection();
 
@@ -57,6 +60,7 @@ export default class CreateAnOrgWorkflow
           );
 
           createdOrg = fetchedOrg.username;
+          this.isOrgFetched = true;
           cli.action.stop();
           await this.displayOrgContents(fetchedOrg);
 
@@ -77,6 +81,7 @@ export default class CreateAnOrgWorkflow
               OrgType.SCRATCHORG
             );
           }
+          this.isOrgCreated = true;
         }
       } else if (type === OrgType.SCRATCHORG) {
         let isDevEnvironmentCreationRequested =
@@ -87,6 +92,7 @@ export default class CreateAnOrgWorkflow
             this.sfpProjectConfig,
             OrgType.SCRATCHORG
           );
+          this.isOrgCreated = true;
         }
 
       } else {
@@ -98,13 +104,17 @@ export default class CreateAnOrgWorkflow
             this.sfpProjectConfig,
             OrgType.SANDBOX
           );
+          this.isOrgCreated = true;
         }
       }
 
 
     if (createdOrg) {
 
-      await this.installDependencies(createdOrg);
+      if(isOrgCreated)
+        await this.installDependencies(createdOrg,true);
+      else
+       await this.installDependencies(createdOrg,false);
 
       let isOrgToBeOpened =
         await this.promptForNeedForOpeningDevEnvironment();
@@ -254,10 +264,21 @@ export default class CreateAnOrgWorkflow
     }
   }
 
-  private async installDependencies(username:string)
+  private async installDependencies(username:string,isUpdateMode:boolean)
   {
-    let installDependenciesWorkflow = new InstallDependenciesWorkflow(this.sfpProjectConfig,username);
+    try
+    {
+    let installDependenciesWorkflow = new InstallDependenciesWorkflow(this.sfpProjectConfig,username,isUpdateMode);
     await installDependenciesWorkflow.execute();
+    }
+    catch(error)
+    {
+      SFPLogger.log(error.message,LoggerLevel.ERROR);
+      if(this.isOrgCreated)
+        SFPLogger.log("Unable to install external dependency packages, Check your sfdx-project.json ",LoggerLevel.ERROR);
+      else
+        SFPLogger.log("Unable to update external dependency packages, Check your sfdx-project.json ",LoggerLevel.ERROR);
+    }
 
   }
 
