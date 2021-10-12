@@ -1,9 +1,9 @@
 import { SimpleGit } from "simple-git";
 import { SfpProjectConfig } from "../../types/SfpProjectConfig";
 import ProjectConfig from "@dxatscale/sfpowerscripts.core/lib/project/ProjectConfig";
-import inquirer = require('inquirer')
 import SFPLogger from "@dxatscale/sfpowerscripts.core/lib/logger/SFPLogger";
 import { EOL } from "os";
+import inquirer = require('inquirer');
 
 export default class CommitWorkflow {
 
@@ -16,7 +16,21 @@ export default class CommitWorkflow {
       .map((elem) => elem.path);
     paths.push("sfdx-project.json");
 
-    await this.git.add(paths);
+    const unstagedFiles = (await this.git.diff(["--name-only", "--", ...paths])).split("\n");
+    unstagedFiles.pop(); // Remove empty string at the end of the array
+
+    const filesToStage = await inquirer.prompt([
+      {
+        type: "checkbox",
+        name: "files",
+        message: "Select files to commit",
+        choices: unstagedFiles,
+        default: unstagedFiles,
+        loop: false
+      }
+    ]);
+
+    await this.git.add(filesToStage.files);
 
     const isStagedChanges = await this.git.diff(["--staged", "--raw", "--", ...paths]) ? true : false;
     if (isStagedChanges) {
