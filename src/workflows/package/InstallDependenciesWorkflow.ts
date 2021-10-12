@@ -4,9 +4,12 @@ import InstallPackageDependenciesImpl from "@dxatscale/sfpowerscripts.core/lib/s
 
 export default class InstallDependenciesWorkflow
 {
+  private installOrUpdateLabel: string="install";
 
-  constructor(private sfpProjectConfig:SfpProjectConfig,private username:string)
+  constructor(private sfpProjectConfig:SfpProjectConfig,private username:string,isUpdateMode:boolean=false)
   {
+    if(isUpdateMode==true)
+      this.installOrUpdateLabel="update";
   }
 
   public async execute()
@@ -27,7 +30,8 @@ export default class InstallDependenciesWorkflow
         type: "confirm",
         name: "install",
         message:
-          "Do you want to install all the external dependencies to this org?",
+          `Do you want to ${this.installOrUpdateLabel} all the external package dependencies to this org?`,
+
       },
     ]);
     return isInstallDependenciesConfirmationPrompt.install;
