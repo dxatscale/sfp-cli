@@ -1,9 +1,5 @@
 import { flags } from "@oclif/command";
 import inquirer = require("inquirer");
-inquirer.registerPrompt(
-  "autocomplete",
-  require("inquirer-autocomplete-prompt")
-);
 import SFPlogger, {
   COLOR_ERROR,
   COLOR_HEADER,

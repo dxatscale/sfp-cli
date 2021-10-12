@@ -1,4 +1,9 @@
 import inquirer = require("inquirer");
+inquirer.registerPrompt(
+  "autocomplete",
+  require("inquirer-autocomplete-prompt")
+);
+
 const fuzzy = require("fuzzy");
 
 export default class SelectPackageWorkflow
