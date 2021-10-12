@@ -111,7 +111,7 @@ export default class CreateAnOrgWorkflow
 
     if (createdOrg) {
 
-      if(isOrgCreated)
+      if(this.isOrgCreated)
         await this.installDependencies(createdOrg,true);
       else
        await this.installDependencies(createdOrg,false);
