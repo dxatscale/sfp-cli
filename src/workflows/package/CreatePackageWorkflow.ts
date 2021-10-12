@@ -1,11 +1,5 @@
 import { string } from "@oclif/parser/lib/flags";
 import inquirer = require("inquirer");
-inquirer.registerPrompt(
-  "autocomplete",
-  require("inquirer-autocomplete-prompt")
-);
-
-
 const path = require("path");
 
 export default class CreatePackageWorkflow {
