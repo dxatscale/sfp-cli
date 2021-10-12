@@ -213,93 +213,103 @@ export default class PullSourceWorkflow {
 
     cli.action.start("  Moving source components...");
 
-    for (let instruction of mergePlan) {
-      let isDeleteComponents: boolean = true;
+    try {
+      // rename .forceignore temporarily during merge, which prevents it from ignoring target directory of a merge
+      fs.renameSync(".forceignore", ".forceignore.bak");
 
-      let components = pullResult.pulledSource.filter((component) => {
-        //Handle Bundles
-        if (component.fullName.includes("/")) {
-          if (
-            component.fullName.split("/")[0] ==
-              instruction.fullName.split("/")[0] &&
+      for (let instruction of mergePlan) {
+        let isDeleteComponents: boolean = true;
+
+        let components = pullResult.pulledSource.filter((component) => {
+          //Handle Bundles
+          if (component.fullName.includes("/")) {
+            if (
+              component.fullName.split("/")[0] ==
+                instruction.fullName.split("/")[0] &&
+              component.type === instruction.type
+            )
+              return component;
+          } else if (
+            component.fullName === this.encodeData(instruction.fullName) &&
             component.type === instruction.type
           )
             return component;
-        } else if (
-          component.fullName === this.encodeData(instruction.fullName) &&
-          component.type === instruction.type
-        )
-          return component;
-      });
+        });
 
-      if (isEmpty(components)) continue;
+        if (isEmpty(components)) continue;
 
-      const converter = new MetadataConverter();
+        const converter = new MetadataConverter();
 
-      let filePath = components.find(
-        (component) => path.extname(component.filePath) === ".xml"
-      )?.filePath;
+        let filePath = components.find(
+          (component) => path.extname(component.filePath) === ".xml"
+        )?.filePath;
 
-      //We dont want non xml files to the merger
-      if (filePath == null) continue;
+        //We dont want non xml files to the merger
+        if (filePath == null) continue;
 
-      const componentSet = ComponentSet.fromSource(filePath);
+        const componentSet = ComponentSet.fromSource(filePath);
 
-      for (let dest of instruction.destination) {
-        let convertResult: ConvertResult;
+        for (let dest of instruction.destination) {
+          let convertResult: ConvertResult;
 
-        if (dest.aliasfy) {
-          let files = fs.readdirSync(dest.package);
-          let aliases = files.filter((file) => {
-            let filepath = path.join(dest.package, file);
-            return fs.lstatSync(filepath).isDirectory();
-          });
+          if (dest.aliasfy) {
+            let files = fs.readdirSync(dest.package);
+            let aliases = files.filter((file) => {
+              let filepath = path.join(dest.package, file);
+              return fs.lstatSync(filepath).isDirectory();
+            });
 
-          for (let alias of aliases) {
+            for (let alias of aliases) {
+              convertResult = await converter.convert(componentSet, "source", {
+                type: "merge",
+                mergeWith: ComponentSet.fromSource(
+                  path.resolve(dest.package, alias)
+                ).getSourceComponents(),
+                defaultDirectory: path.join(dest.package, alias),
+                forceIgnoredPaths:
+                  componentSet.forceIgnoredPaths ?? new Set<string>(),
+              });
+            }
+          } else {
             convertResult = await converter.convert(componentSet, "source", {
               type: "merge",
               mergeWith: ComponentSet.fromSource(
-                path.resolve(dest.package, alias)
+                path.resolve(dest.package)
               ).getSourceComponents(),
-              defaultDirectory: path.join(dest.package, alias),
+              defaultDirectory: dest.package,
               forceIgnoredPaths:
                 componentSet.forceIgnoredPaths ?? new Set<string>(),
             });
           }
-        } else {
-          convertResult = await converter.convert(componentSet, "source", {
-            type: "merge",
-            mergeWith: ComponentSet.fromSource(
-              path.resolve(dest.package)
-            ).getSourceComponents(),
-            defaultDirectory: dest.package,
-            forceIgnoredPaths:
-              componentSet.forceIgnoredPaths ?? new Set<string>(),
-          });
+
+          let mergedXmlFilePath: string = convertResult.converted[0].xml;
+
+          if (this.isXmlFileSuffixDuped(convertResult.converted[0].xml)) {
+            mergedXmlFilePath = this.dedupeXmlFileSuffix(
+              convertResult.converted[0].xml
+            );
+          }
+
+          if (mergedXmlFilePath === filePath) {
+            // If the merged xml filepath and pulled xml filepath is the same, do not delete the original components
+            isDeleteComponents = false;
+          }
         }
 
-        let mergedXmlFilePath: string = convertResult.converted[0].xml;
-        if (this.isXmlFileSuffixDuped(convertResult.converted[0].xml)) {
-          mergedXmlFilePath = this.dedupeXmlFileSuffix(
-            convertResult.converted[0].xml
-          );
+        if (isDeleteComponents) {
+          for (let component of components) {
+            fs.unlinkSync(component.filePath);
+          }
         }
 
-        if (mergedXmlFilePath === filePath) {
-          // If the merged xml filepath and pulled xml filepath is the same, do not delete the original components
-          isDeleteComponents = false;
-        }
+        //Clean up src-temp of empty directories
+        this.removeEmptyDirectories("src-temp/main/default");
       }
-
-      if (isDeleteComponents) {
-        for (let component of components) {
-          fs.unlinkSync(component.filePath);
-        }
-      }
-
-      //Clean up src-temp of empty directories
-      this.removeEmptyDirectories("src-temp/main/default");
+    } finally {
+      // restore .forceignore, after merge finishes
+      fs.renameSync(".forceignore.bak", ".forceignore");
     }
+
 
     cli.action.stop();
 
