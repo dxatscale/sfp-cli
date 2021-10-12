@@ -205,7 +205,7 @@ export default class CreateAnOrgWorkflow
         default: true,
       },
     ]);
-    return isDevEnvironmentRequiredPrompt.isDevEnvironmentRequired;
+    return isDevEnvironmentRequiredPrompt.isOrgToBeOpened;
   }
 
 
