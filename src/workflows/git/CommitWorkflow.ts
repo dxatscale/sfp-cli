@@ -16,6 +16,9 @@ export default class CommitWorkflow {
       .map((elem) => elem.path);
     paths.push("sfdx-project.json");
 
+    // track files so that they are included in diff
+    await this.git.raw(["add", "--intent-to-add", "--", ...paths]);
+
     const unstagedFiles = (await this.git.diff(["--name-only", "--", ...paths])).split("\n");
     unstagedFiles.pop(); // Remove empty string at the end of the array
 
