@@ -16,13 +16,7 @@ export default class CommitWorkflow {
       .map((elem) => elem.path);
     paths.push("sfdx-project.json");
 
-    // track files so that they are included in diff
-    await this.git.raw(["add", "--intent-to-add", "--", ...paths]);
-
-    let diffResult = (await this.git.diff(["--name-status", "--", ...paths])).split("\n");
-    diffResult.pop(); // Remove empty string at the end of the array
-
-    const unstagedChanges = this.tokenizeDiffResult(diffResult)
+    const unstagedChanges = await this.getUnstagedChanges(paths);
 
     const filesToStage = await inquirer.prompt([
       {
@@ -77,6 +71,16 @@ export default class CommitWorkflow {
         value: change.file
       }
     });
+  }
+
+  private async getUnstagedChanges(paths: string[], ) {
+    // track files so that they are included in diff
+    await this.git.raw(["add", "--intent-to-add", "--", ...paths]);
+
+    let diffResult = (await this.git.diff(["--name-status", "--", ...paths])).split("\n");
+    diffResult.pop(); // Remove empty string at the end of the array
+
+    return this.tokenizeDiffResult(diffResult)
   }
 
   private tokenizeDiffResult(diffResult: string[]) {
