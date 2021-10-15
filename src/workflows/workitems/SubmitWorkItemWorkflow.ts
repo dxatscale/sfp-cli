@@ -38,9 +38,7 @@ export default class SubmitWorkItemWorkflow {
     if (await this.isPmdAnalysis()) {
       const packageDirectories = ProjectConfig.getSFDXPackageManifest(null).packageDirectories;
 
-      for (const pkg of packageDirectories) {
-        await new AnalyzeWithPMD(pkg.path, "sfpowerkit", null, 1, "6.34.0").exec()
-      }
+      await new AnalyzeWithPMD(packageDirectories.map(dir => dir.path), "sfpowerkit", null, 1, "6.34.0").exec()
     }
 
     await new CommitWorkflow(git, this.sfpProjectConfig).execute();

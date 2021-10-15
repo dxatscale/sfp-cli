@@ -9,7 +9,7 @@ import lodash = require("lodash");
 export default class AnalyzeWithPMD {
 
   constructor(
-    private sourceDir: string,
+    private sourceDirectories: string[],
     private ruleset: "sfpowerkit" | "Custom",
     private rulesetPath: string,
     private threshold: number,
@@ -22,7 +22,7 @@ export default class AnalyzeWithPMD {
     // Setup Logging Directory
     fs.mkdirpSync(".sfdx/sfp");
 
-    const sourceDir: string = this.sourceDir;
+    const sourceDirectories: string[] = this.sourceDirectories;
     const ruleset: string = this.ruleset;
 
     let rulesetPath = "";
@@ -36,23 +36,48 @@ export default class AnalyzeWithPMD {
     const version: string = this.version;
     const threshold: number = this.threshold;
 
-    let pmdReport: PmdReport;
+    const pmdReport: PmdReport = {
+      summary: {
+        totalViolations: 0,
+        totalFiles: 0,
+        priority: {
+          1: {
+            nViolations: 0,
+          },
+          2: {
+            nViolations: 0,
+          },
+          3: {
+            nViolations: 0,
+          },
+          4: {
+            nViolations: 0,
+          },
+          5: {
+            nViolations: 0,
+          },
+        },
+      },
+      data: [],
+    };
 
-    let artifactFilePath = path.join(".sfpowerscripts", "sf-pmd-output.xml");
-    // generate pmd output in XML format, for parsing
-    let pmdImpl = new AnalyzeWithPMDImpl(
-      sourceDir,
-      rulesetPath,
-      "xml",
-      artifactFilePath,
-      version
-    );
-    await pmdImpl.exec(false);
+    for (const dir of sourceDirectories) {
+      let artifactFilePath = path.join(".sfpowerscripts", "sf-pmd-output.xml");
+      // generate pmd output in XML format, for parsing
+      let pmdImpl = new AnalyzeWithPMDImpl(
+        dir,
+        rulesetPath,
+        "xml",
+        artifactFilePath,
+        version
+      );
+      await pmdImpl.exec(false);
 
-    if (fs.existsSync(artifactFilePath)) {
-      pmdReport = this.parsePmdXmlOutputFile(artifactFilePath);
-    } else {
-      throw new Error("Failed to generate PMD output");
+      if (fs.existsSync(artifactFilePath)) {
+        this.parsePmdXmlOutputFile(artifactFilePath, pmdReport);
+      } else {
+        throw new Error("Failed to generate PMD output");
+      }
     }
 
     this.printPmdReport(pmdReport);
@@ -86,35 +111,11 @@ export default class AnalyzeWithPMD {
   }
 
   /**
-   * Parse PMD XML output file and return a PMD report in JSON
+   * Parse PMD XML output file and update PMD report
    * @param xmlFile
    * @returns
    */
-  private parsePmdXmlOutputFile(xmlFile: string): PmdReport {
-    const pmdReport: PmdReport = {
-      summary: {
-        totalViolations: 0,
-        totalFiles: 0,
-        priority: {
-          1: {
-            nViolations: 0,
-          },
-          2: {
-            nViolations: 0,
-          },
-          3: {
-            nViolations: 0,
-          },
-          4: {
-            nViolations: 0,
-          },
-          5: {
-            nViolations: 0,
-          },
-        },
-      },
-      data: [],
-    };
+  private parsePmdXmlOutputFile(xmlFile: string, pmdReport: PmdReport): void {
 
     let xml: string = fs.readFileSync(xmlFile, "utf-8");
     xml2js.parseString(xml, (err, result) => {
@@ -125,8 +126,8 @@ export default class AnalyzeWithPMD {
       }
 
       if (!result.pmd.file || result.pmd.file.length === 0) {
-        // No files with violations, return empty PMD report
-        return pmdReport;
+        // No files with violations
+        return
       }
 
       result.pmd.file.forEach((file: any) => {
@@ -160,8 +161,6 @@ export default class AnalyzeWithPMD {
 
       pmdReport.summary.totalFiles = pmdReport.data.length;
     });
-
-    return pmdReport;
   }
 
   private printPmdReport(report: PmdReport): void {
