@@ -80,7 +80,7 @@ export default class AnalyzeWithPMD {
       }
     }
 
-    this.printPmdReport(pmdReport);
+    this.printPmdReport(pmdReport, threshold);
 
     // if (outputPath) {
     //   // generate pmd results in the requested format and at the output path
@@ -108,6 +108,11 @@ export default class AnalyzeWithPMD {
         }
       }
     }
+
+    SFPLogger.log(
+      COLOR_SUCCESS("Build succeeded. No violations found."),
+      LoggerLevel.INFO
+    );
   }
 
   /**
@@ -163,32 +168,26 @@ export default class AnalyzeWithPMD {
     });
   }
 
-  private printPmdReport(report: PmdReport): void {
-    if (report.data.length === 0) {
-      SFPLogger.log(
-        COLOR_SUCCESS("Build succeeded. No violations found."),
-        LoggerLevel.INFO
-      );
-      return;
-    }
+  private printPmdReport(report: PmdReport, threshold: number): void {
+    let table = new Table({
+      head: ["File", "Priority", "Line Number", "Rule", "Description"],
+    });
 
-    for (let i = 0; i < report.data.length; i++) {
-      SFPLogger.log(`\n${report.data[i].filepath}`, LoggerLevel.INFO);
-      let table = new Table({
-        head: ["Priority", "Line Number", "Rule", "Description"],
+    report.data.forEach(record => {
+      record.violations.forEach(violation => {
+        if (violation.priority <= threshold) {
+          table.push([
+            path.relative(process.cwd(), record.filepath),
+            violation.priority,
+            violation.beginLine,
+            violation.rule,
+            violation.description.trim(),
+          ]);
+        }
       });
+    });
 
-      report.data[i].violations.forEach((violation) => {
-        table.push([
-          violation.priority,
-          violation.beginLine,
-          violation.rule,
-          violation.description.trim(),
-        ]);
-      });
-
-      SFPLogger.log(table.toString(), LoggerLevel.INFO);
-    }
+    SFPLogger.log(table.toString(), LoggerLevel.INFO);
   }
 }
 
