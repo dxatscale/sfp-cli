@@ -10,6 +10,8 @@ import PushSourceToOrg from "../../impl/sfpcommands/PushSourceToOrg";
 import PickAnOrgWorkflow from "../org/PickAnOrgWorkflow";
 import child_process = require('child_process');
 import RepoProviderSelector from "../../impl/repoprovider/RepoProviderSelector";
+import AnalyzeWithPMD from "../../impl/sfpcommands/AnalyzeWithPMD";
+import ProjectConfig from "@dxatscale/sfpowerscripts.core/lib/project/ProjectConfig";
 
 export default class SubmitWorkItemWorkflow {
   private devOrg: string;
@@ -31,6 +33,14 @@ export default class SubmitWorkItemWorkflow {
     if (await this.isPushSourceToOrg()) {
       const devOrg = await this.getDevOrg(git);
       await new PushSourceToOrg(devOrg).exec();
+    }
+
+    if (await this.isPmdAnalysis()) {
+      const packageDirectories = ProjectConfig.getSFDXPackageManifest(null).packageDirectories;
+
+      for (const pkg of packageDirectories) {
+        await new AnalyzeWithPMD(pkg.path, "sfpowerkit", null, 1, "6.34.0").exec()
+      }
     }
 
     await new CommitWorkflow(git, this.sfpProjectConfig).execute();
@@ -110,5 +120,15 @@ export default class SubmitWorkItemWorkflow {
     })
 
     return answers.isCreatePullRequest;
+  }
+
+  private async isPmdAnalysis(): Promise<boolean> {
+    const answers = await inquirer.prompt({
+      type: "confirm",
+      name: "isPmdAnalysis",
+      message: "Run PMD static code analysis?"
+    })
+
+    return answers.isPmdAnalysis;
   }
 }
