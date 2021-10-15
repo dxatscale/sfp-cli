@@ -62,7 +62,7 @@ export default class AnalyzeWithPMD {
     };
 
     for (const dir of sourceDirectories) {
-      let artifactFilePath = path.join(".sfpowerscripts", "sf-pmd-output.xml");
+      let artifactFilePath = path.join(".sfdx/sfp", "sf-pmd-output.xml");
       // generate pmd output in XML format, for parsing
       let pmdImpl = new AnalyzeWithPMDImpl(
         dir,
