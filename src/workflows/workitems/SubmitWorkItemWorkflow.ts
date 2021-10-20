@@ -12,6 +12,8 @@ import child_process = require('child_process');
 import RepoProviderSelector from "../../impl/repoprovider/RepoProviderSelector";
 import AnalyzeWithPMD from "../../impl/sfpcommands/AnalyzeWithPMD";
 import ProjectConfig from "@dxatscale/sfpowerscripts.core/lib/project/ProjectConfig";
+import TriggerApexTest from "../../impl/sfpcommands/TriggerApexTest";
+import SelectPackageWorkflow from "../package/SelectPackageWorkflow";
 
 export default class SubmitWorkItemWorkflow {
   private devOrg: string;
@@ -36,9 +38,22 @@ export default class SubmitWorkItemWorkflow {
     }
 
     if (await this.isPmdAnalysis()) {
-      const packageDirectories = ProjectConfig.getSFDXPackageManifest(null).packageDirectories;
+      const selectPackageWorkflow = new SelectPackageWorkflow(ProjectConfig.getSFDXPackageManifest(null));
+      const descriptorofChosenPackages = await selectPackageWorkflow.choosePackages();
+      const pathOfPackages = descriptorofChosenPackages.map(descriptor => descriptor.path);
 
-      await new AnalyzeWithPMD(packageDirectories.map(dir => dir.path), "sfpowerkit", null, 1, "6.34.0").exec()
+      await new AnalyzeWithPMD(pathOfPackages, "sfpowerkit", null, 1, "6.34.0").exec()
+    }
+
+    if (await this.isRunApexTests()) {
+      const devOrg = await this.getDevOrg(git);
+
+      const selectPackageWorkflow = new SelectPackageWorkflow(ProjectConfig.getSFDXPackageManifest(null));
+      const descriptorofChosenPackages = await selectPackageWorkflow.choosePackages();
+      const packages = descriptorofChosenPackages.map(descriptor => descriptor.package);
+
+      const triggerApexTest = new TriggerApexTest(devOrg, "RunAggregatedTests", null, null, true, 60, packages, false, false, 75);
+      await triggerApexTest.exec();
     }
 
     await new CommitWorkflow(git, this.sfpProjectConfig).execute();
@@ -128,5 +143,14 @@ export default class SubmitWorkItemWorkflow {
     })
 
     return answers.isPmdAnalysis;
+  }
+  private async isRunApexTests(): Promise<boolean> {
+    const answers = await inquirer.prompt({
+      type: "confirm",
+      name: "isRunApexTests",
+      message: "Run Apex tests?"
+    });
+
+    return answers.isRunApexTests;
   }
 }

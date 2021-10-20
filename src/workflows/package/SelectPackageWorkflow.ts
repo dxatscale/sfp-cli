@@ -13,6 +13,10 @@ export default class SelectPackageWorkflow
     private readonly projectConfig
   ) {}
 
+  /**
+   * Supports fuzzy search
+   * @returns descriptor of chosen package
+   */
   public async pickAnExistingPackage() {
     let existingPackage = await inquirer.prompt([
       {
@@ -35,6 +39,33 @@ export default class SelectPackageWorkflow
     ]);
 
     return this.getSfdxPackageDescriptor(existingPackage.name);
+  }
+
+  /**
+   * Choose one or more packages
+   * @returns descriptor of one or more chosen packages
+   */
+  public async choosePackages() {
+    const chosenPackages = await inquirer.prompt([
+      {
+        type: "checkbox",
+        name: "packages",
+        message: "Select packages",
+        choices: this.getPackageDirectoriesAsChoices(),
+        loop: false
+      }
+    ]);
+
+    return chosenPackages.packages;
+  }
+
+  private getPackageDirectoriesAsChoices() {
+    return this.projectConfig.packageDirectories.map(elem => {
+      return {
+        name: elem.package,
+        value: elem
+      }
+    });
   }
 
   private getDefaultSfdxPackageDescriptor() {
