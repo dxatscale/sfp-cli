@@ -39,7 +39,7 @@ export default class SubmitWorkItemWorkflow {
 
     if (await this.isPmdAnalysis()) {
       const selectPackageWorkflow = new SelectPackageWorkflow(ProjectConfig.getSFDXPackageManifest(null));
-      const descriptorofChosenPackages = await selectPackageWorkflow.choosePackages();
+      const descriptorofChosenPackages = await selectPackageWorkflow.choosePackages(true);
       const pathOfPackages = descriptorofChosenPackages.map(descriptor => descriptor.path);
 
       await new AnalyzeWithPMD(pathOfPackages, "sfpowerkit", null, 1, "6.34.0").exec()
@@ -49,7 +49,7 @@ export default class SubmitWorkItemWorkflow {
       const devOrg = await this.getDevOrg(git);
 
       const selectPackageWorkflow = new SelectPackageWorkflow(ProjectConfig.getSFDXPackageManifest(null));
-      const descriptorofChosenPackages = await selectPackageWorkflow.choosePackages();
+      const descriptorofChosenPackages = await selectPackageWorkflow.choosePackages(true);
       const packages = descriptorofChosenPackages.map(descriptor => descriptor.package);
 
       const triggerApexTest = new TriggerApexTest(devOrg, "RunAggregatedTests", null, null, true, 60, packages, false, false, 75);

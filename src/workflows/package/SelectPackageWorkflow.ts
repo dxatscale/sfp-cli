@@ -3,8 +3,9 @@ inquirer.registerPrompt(
   "autocomplete",
   require("inquirer-autocomplete-prompt")
 );
-
 const fuzzy = require("fuzzy");
+import PackageDiffImpl from "@dxatscale/sfpowerscripts.core/lib/package/PackageDiffImpl";
+import SFPLogger, { ConsoleLogger, LoggerLevel } from "@dxatscale/sfpowerscripts.core/lib/logger/SFPLogger";
 
 export default class SelectPackageWorkflow
 {
@@ -45,13 +46,37 @@ export default class SelectPackageWorkflow
    * Choose one or more packages
    * @returns descriptor of one or more chosen packages
    */
-  public async choosePackages() {
+  public async choosePackages(isPackageDiff: boolean) {
+    const choices = this.getPackageDirectoriesAsChoices();
+    let defaultChoices;
+
+    if (isPackageDiff) {
+      const changedPackagesAsChoices = [];
+
+      const logLevelBackup = SFPLogger.logLevel;
+      SFPLogger.logLevel = LoggerLevel.WARN; // Ignore INFO logs for PackageDiffImpl
+
+      for (const choice of choices) {
+        const packageDiffImpl = new PackageDiffImpl(new ConsoleLogger(), choice.name, null);
+        const result = await packageDiffImpl.exec();
+
+        if (result) {
+          changedPackagesAsChoices.push(choice);
+        }
+      }
+
+      SFPLogger.logLevel = logLevelBackup;
+
+      defaultChoices = changedPackagesAsChoices.map(choice => choice.value);
+    }
+
     const chosenPackages = await inquirer.prompt([
       {
         type: "checkbox",
         name: "packages",
         message: "Select packages",
-        choices: this.getPackageDirectoriesAsChoices(),
+        choices: choices,
+        default: defaultChoices,
         loop: false
       }
     ]);
