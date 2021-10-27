@@ -73,11 +73,6 @@
     "warn-if-update-available": {
       "timeoutInDays": 0,
       "message": "<%= config.name %> update available from <%= chalk.greenBright(config.version) %> to <%= chalk.greenBright(latest) %>. Use <%= chalk.greenBright('npm update --global sfdx-cli') %> to update to the latest version."
-    },
-    "topics": {
-      "package": {
-        "description": "Commands for managing packages"
-      }
     }
   },
   "repository": "dxatscale/sfp-cli",

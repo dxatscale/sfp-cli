@@ -1,21 +1,16 @@
-import { flags } from "@oclif/command";
-import SfpCommand from "../../SfpCommand";
-import inquirer = require("inquirer");
-import * as fs from "fs-extra";
 import ProjectConfig from "@dxatscale/sfpowerscripts.core/lib/project/ProjectConfig";
-import PackageVersion, {Positional} from "../../impl/package/PackageVersion";
+import inquirer = require("inquirer");
 import lodash = require("lodash");
-import SelectPackageWorkflow from "../../workflows/package/SelectPackageWorkflow";
+import PackageVersion, { Positional } from "../../impl/package/PackageVersion";
+import SelectPackageWorkflow from "./SelectPackageWorkflow";
+import * as fs from "fs-extra";
+import SFPLogger, { COLOR_ERROR, COLOR_KEY_MESSAGE, COLOR_KEY_VALUE, COLOR_SUCCESS } from "@dxatscale/sfpowerscripts.core/lib/logger/SFPLogger";
+
+export default class PackageVersionWorkflow
+{
 
 
-export default class Version extends SfpCommand {
-  public static description = "Increment package versions";
-
-  static flags = {
-    help: flags.help({ char: "h" }),
-  };
-
-  public async exec() {
+  public async execute() {
     const projectConfig = ProjectConfig.getSFDXPackageManifest(null);
     const oldProjectConfig = lodash.cloneDeep(projectConfig); // for comparison and printing of changes
 
@@ -55,12 +50,14 @@ export default class Version extends SfpCommand {
         selectedPackageDescriptor.versionNumber = newPackageVersion;
         updatedPackageDescriptors.push(selectedPackageDescriptor);
 
-        const dependentsOfSelectedPackage = Version.getDependentsOfPackage(
+        const dependentsOfSelectedPackage = PackageVersionWorkflow.getDependentsOfPackage(
           selectedPackageDescriptor.package,
           projectConfig
         );
 
         if (dependentsOfSelectedPackage.length > 0) {
+
+          SFPLogger.log(` Proceeding to updating dependents of ${COLOR_KEY_VALUE(selectedPackageDescriptor.package)}`)
           for (const dependent of dependentsOfSelectedPackage) {
             const newPackageVersion = await this.getNewPackageVersion(
               dependent
@@ -91,6 +88,7 @@ export default class Version extends SfpCommand {
       spaces: 4,
     });
   }
+
 
   private async getPositional(): Promise<Positional> {
     const response = await inquirer.prompt([
@@ -211,10 +209,10 @@ export default class Version extends SfpCommand {
       const oldPackageDescriptor = oldPackageDescriptors.find(oldDescriptor => oldDescriptor.package === descriptor.package);
       console.log(
         " - ",
-        oldPackageDescriptor.package,
-        oldPackageDescriptor.versionNumber,
+        `${COLOR_KEY_MESSAGE(oldPackageDescriptor.package)}`,
+        `${COLOR_ERROR(oldPackageDescriptor.versionNumber)}`,
         " => ",
-        descriptor.versionNumber
+        `${COLOR_SUCCESS(descriptor.versionNumber)}`
       );
     }
   }
@@ -292,4 +290,6 @@ export default class Version extends SfpCommand {
 
     return new PackageVersion(customVersion.version).getVersionNumber();
   }
+
+
 }
