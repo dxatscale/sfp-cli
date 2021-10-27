@@ -31,7 +31,7 @@ USAGE
 * [`sfp help [COMMAND]`](#sfp-help-command)
 * [`sfp init [CALLER] [MODE]`](#sfp-init-caller-mode)
 * [`sfp org`](#sfp-org)
-* [`sfp package`](#sfp-package)
+* [`sfp project`](#sfp-project)
 * [`sfp sync`](#sfp-sync)
 * [`sfp work`](#sfp-work)
 
@@ -80,19 +80,19 @@ OPTIONS
 
 _See code: [src/commands/org.ts](https://github.com/dxatscale/sfp-cli/blob/v0.0.34/src/commands/org.ts)_
 
-## `sfp package`
+## `sfp project`
 
-Helps to manage packages
+Helpers to deal with your dx@scale project
 
 ```
 USAGE
-  $ sfp package
+  $ sfp project
 
 OPTIONS
   -h, --help  show CLI help
 ```
 
-_See code: [src/commands/package.ts](https://github.com/dxatscale/sfp-cli/blob/v0.0.34/src/commands/package.ts)_
+_See code: [src/commands/project.ts](https://github.com/dxatscale/sfp-cli/blob/v0.0.34/src/commands/project.ts)_
 
 ## `sfp sync`
 

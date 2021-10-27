@@ -4,9 +4,9 @@ import CommandsWithInitCheck from "../sharedCommandBase/CommandsWithInitCheck";
 import PackageVersionWorkflow from "../workflows/package/PackageVersionWorkflow";
 
 
-export default class Package extends CommandsWithInitCheck {
+export default class Project extends CommandsWithInitCheck {
 
-  public static description = "Helps to manage packages";
+  public static description = "helpers to deal with your project";
 
   static flags = {
     help: flags.help({ char: "h" }),
