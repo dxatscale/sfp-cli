@@ -1,7 +1,7 @@
 import { version } from "process";
 
 /**
- *
+ * TODO: Replace with class from core library
  */
 export default class PackageVersion {
   private _major: number;
