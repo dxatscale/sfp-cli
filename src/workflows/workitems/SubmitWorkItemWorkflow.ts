@@ -42,7 +42,7 @@ export default class SubmitWorkItemWorkflow {
       const descriptorofChosenPackages = await selectPackageWorkflow.choosePackages(true);
       const pathOfPackages = descriptorofChosenPackages.map(descriptor => descriptor.path);
 
-      await new AnalyzeWithPMD(pathOfPackages, "sfpowerkit", null, 1, "6.34.0").exec()
+      await new AnalyzeWithPMD(pathOfPackages, "sfpowerkit", null, 1, "6.39.0").exec()
     }
 
     if (await this.isRunApexTests()) {

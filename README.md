@@ -19,7 +19,7 @@ $ npm install -g @dxatscale/sfp-cli
 $ sfp COMMAND
 running command...
 $ sfp (-v|--version|version)
-@dxatscale/sfp-cli/0.0.33 darwin-x64 node-v14.16.1
+@dxatscale/sfp-cli/0.0.34 darwin-x64 node-v14.16.1
 $ sfp --help [COMMAND]
 USAGE
   $ sfp COMMAND
@@ -31,6 +31,7 @@ USAGE
 * [`sfp help [COMMAND]`](#sfp-help-command)
 * [`sfp init [CALLER] [MODE]`](#sfp-init-caller-mode)
 * [`sfp org`](#sfp-org)
+* [`sfp project`](#sfp-project)
 * [`sfp sync`](#sfp-sync)
 * [`sfp work`](#sfp-work)
 
@@ -63,7 +64,7 @@ OPTIONS
   -h, --help  show CLI help
 ```
 
-_See code: [src/commands/init.ts](https://github.com/dxatscale/sfp-cli/blob/v0.0.33/src/commands/init.ts)_
+_See code: [src/commands/init.ts](https://github.com/dxatscale/sfp-cli/blob/v0.0.34/src/commands/init.ts)_
 
 ## `sfp org`
 
@@ -77,7 +78,21 @@ OPTIONS
   -h, --help  show CLI help
 ```
 
-_See code: [src/commands/org.ts](https://github.com/dxatscale/sfp-cli/blob/v0.0.33/src/commands/org.ts)_
+_See code: [src/commands/org.ts](https://github.com/dxatscale/sfp-cli/blob/v0.0.34/src/commands/org.ts)_
+
+## `sfp project`
+
+Helpers to deal with your dx@scale project
+
+```
+USAGE
+  $ sfp project
+
+OPTIONS
+  -h, --help  show CLI help
+```
+
+_See code: [src/commands/project.ts](https://github.com/dxatscale/sfp-cli/blob/v0.0.34/src/commands/project.ts)_
 
 ## `sfp sync`
 
@@ -91,7 +106,7 @@ OPTIONS
   -h, --help  show CLI help
 ```
 
-_See code: [src/commands/sync.ts](https://github.com/dxatscale/sfp-cli/blob/v0.0.33/src/commands/sync.ts)_
+_See code: [src/commands/sync.ts](https://github.com/dxatscale/sfp-cli/blob/v0.0.34/src/commands/sync.ts)_
 
 ## `sfp work`
 
@@ -105,5 +120,5 @@ OPTIONS
   -h, --help  show CLI help
 ```
 
-_See code: [src/commands/work.ts](https://github.com/dxatscale/sfp-cli/blob/v0.0.33/src/commands/work.ts)_
+_See code: [src/commands/work.ts](https://github.com/dxatscale/sfp-cli/blob/v0.0.34/src/commands/work.ts)_
 <!-- commandsstop -->
