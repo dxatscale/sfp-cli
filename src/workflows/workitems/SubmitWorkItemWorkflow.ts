@@ -14,6 +14,7 @@ import AnalyzeWithPMD from "../../impl/sfpcommands/AnalyzeWithPMD";
 import ProjectConfig from "@dxatscale/sfpowerscripts.core/lib/project/ProjectConfig";
 import TriggerApexTest from "../../impl/sfpcommands/TriggerApexTest";
 import SelectPackageWorkflow from "../package/SelectPackageWorkflow";
+import cli from "cli-ux";
 
 export default class SubmitWorkItemWorkflow {
   private devOrg: string;
@@ -53,7 +54,10 @@ export default class SubmitWorkItemWorkflow {
       const packages = descriptorofChosenPackages.map(descriptor => descriptor.package);
 
       const triggerApexTest = new TriggerApexTest(devOrg, "RunAggregatedTests", null, null, true, 60, packages, false, false, 75);
+
+      cli.action.start("Running Apex tests...");
       await triggerApexTest.exec();
+      cli.action.stop();
     }
 
     await new CommitWorkflow(git, this.sfpProjectConfig).execute();
