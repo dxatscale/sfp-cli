@@ -6,9 +6,9 @@ import CreatePackageWorkflow from "../workflows/package/CreatePackageWorkflow";
 import PackageVersionWorkflow from "../workflows/package/PackageVersionWorkflow";
 
 
-export default class Project extends CommandsWithInitCheck {
+export default class Package extends CommandsWithInitCheck {
 
-  public static description = "helpers to deal with your project";
+  public static description = "helpers to deal with packages in your project";
 
   static flags = {
     help: flags.help({ char: "h" }),
