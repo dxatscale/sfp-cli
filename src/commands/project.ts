@@ -1,6 +1,8 @@
+import ProjectConfig from "@dxatscale/sfpowerscripts.core/lib/project/ProjectConfig";
 import { flags } from "@oclif/command";
 import inquirer = require("inquirer");
 import CommandsWithInitCheck from "../sharedCommandBase/CommandsWithInitCheck";
+import CreatePackageWorkflow from "../workflows/package/CreatePackageWorkflow";
 import PackageVersionWorkflow from "../workflows/package/PackageVersionWorkflow";
 
 
@@ -21,6 +23,15 @@ export default class Project extends CommandsWithInitCheck {
        let packageVersionWorkflow:PackageVersionWorkflow = new PackageVersionWorkflow();
        await packageVersionWorkflow.execute();
     }
+    else if(commandSelected == PackageCommand.CREATE_PACKAGE_COMMAND)
+    {
+      const projectConfig = ProjectConfig.getSFDXPackageManifest(null);
+      let createPackageWorkflow:CreatePackageWorkflow = new CreatePackageWorkflow(
+        projectConfig
+      )
+      let newPackage = await createPackageWorkflow.stageANewPackage();
+      await createPackageWorkflow.commitStagedPackage(this.sfpProjectConfig.defaultDevHub,newPackage,projectConfig);
+    }
   }
 
 
@@ -32,7 +43,8 @@ export default class Project extends CommandsWithInitCheck {
         name: "type",
         message: "Select an operation",
         choices: [
-          { name: "Manage Version of Packages", value: PackageCommand.VERSION_COMMAND },
+          { name: "Manage versions of packages in the project", value: PackageCommand.VERSION_COMMAND },
+          { name: "Create a new package in the project", value: PackageCommand.CREATE_PACKAGE_COMMAND },
         ],
       },
     ]);
@@ -46,4 +58,5 @@ export default class Project extends CommandsWithInitCheck {
 
 enum PackageCommand {
   VERSION_COMMAND = 1,
+  CREATE_PACKAGE_COMMAND =2
 }

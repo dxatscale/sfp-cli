@@ -108,7 +108,7 @@ export default class PullSourceWorkflow {
           } else if (plusOneMoveAction === MoveAction.NEW) {
             const newPackage = await new CreatePackageWorkflow(
               projectConfig
-            ).createNewPackage();
+            ).stageANewPackage();
             this.addNewPackageToProjectConfig(
               newPackage.descriptor,
               newPackage.indexOfPackage,

@@ -24,7 +24,7 @@ export default class CreateUnlockedPackage extends SFDXCommand {
 
     params += ` --name=${this.packageInfo.name}`;
 
-    params += ` --description=${this.packageInfo.description}`;
+    params += ` --description="${this.packageInfo.description}"`;
 
     params += ` --path=${this.packageInfo.path}`;
 
