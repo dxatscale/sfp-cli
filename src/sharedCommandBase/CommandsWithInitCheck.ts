@@ -16,8 +16,10 @@ export default abstract class CommandsWithInitCheck extends SfpCommand {
       args.push("inner");
       let init: Init = new Init(args, this.config);
       await init.run();
-      this.sfpProjectConfig = await fs.readJSON(
-        path.join(this.config.configDir, `${this.projectName}.json`)
+      this.sfpProjectConfig = SfpProjectConfig.toInstance(
+        await fs.readJSON(
+          path.join(this.config.configDir, `${this.projectName}.json`)
+        )
       );
     }
    return this.executeCommand();
