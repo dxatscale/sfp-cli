@@ -22,6 +22,12 @@ export default class SubmitWorkItemWorkflow {
 
   async execute() {
     const git = simpleGit();
+    const currentBranch = (await git.branch()).current;
+
+    if (!this.sfpProjectConfig.getWorkItemGivenBranch(currentBranch)) {
+      SFPLogger.log(`No work item found for current branch '${currentBranch}'`, LoggerLevel.ERROR);
+      throw new Error("Please use 'sfp work' to create a work item");
+    }
 
     if (await this.isSyncGit()) {
       await new SyncGit(git, this.sfpProjectConfig).execute();
@@ -58,7 +64,6 @@ export default class SubmitWorkItemWorkflow {
 
     await new CommitWorkflow(git, this.sfpProjectConfig).execute();
 
-    const currentBranch = (await git.branch()).current;
     SFPLogger.log(`Pushing to origin/${currentBranch}`);
     await git.push("origin", currentBranch);
 
