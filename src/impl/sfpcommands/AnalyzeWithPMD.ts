@@ -80,7 +80,10 @@ export default class AnalyzeWithPMD {
       }
     }
 
-    this.printPmdReport(pmdReport, threshold);
+    const recordsWithViolationOfThreshold = this.getRecordsWithViolationOfThreshold(pmdReport, threshold);
+    if (recordsWithViolationOfThreshold.length > 0) {
+      this.printViolationsOfThreshold(recordsWithViolationOfThreshold);
+    }
 
     // if (outputPath) {
     //   // generate pmd results in the requested format and at the output path
@@ -168,23 +171,38 @@ export default class AnalyzeWithPMD {
     });
   }
 
-  private printPmdReport(report: PmdReport, threshold: number): void {
+  private getRecordsWithViolationOfThreshold(report: PmdReport, threshold: number) {
+    const recordsWithViolationsOfThreshold: Record[] = [];
+
+    report.data.forEach(record => {
+      const violationsOfThreshold = record.violations.filter(violation =>
+        violation.priority <= threshold
+      );
+
+      if (violationsOfThreshold.length > 0) {
+        recordsWithViolationsOfThreshold.push({filepath: record.filepath, violations: violationsOfThreshold});
+      }
+    });
+
+    return recordsWithViolationsOfThreshold;
+  }
+
+  private printViolationsOfThreshold(recordsWithViolationOfThreshold: Record[]): void {
+
     let table = new Table({
       head: ["File", "Priority", "Line Number", "Rule", "Description"],
     });
 
-    report.data.forEach(record => {
+    recordsWithViolationOfThreshold.forEach(record => {
       record.violations.forEach(violation => {
-        if (violation.priority <= threshold) {
-          table.push([
-            path.relative(process.cwd(), record.filepath),
-            violation.priority,
-            violation.beginLine,
-            violation.rule,
-            violation.description.trim(),
-          ]);
-        }
-      });
+        table.push([
+          path.relative(process.cwd(), record.filepath),
+          violation.priority,
+          violation.beginLine,
+          violation.rule,
+          violation.description.trim(),
+        ]);
+      })
     });
 
     SFPLogger.log(table.toString(), LoggerLevel.INFO);
