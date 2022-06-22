@@ -45,6 +45,7 @@ jobs:
       - name: 'Build Package'
         run: |
             npm ci
+            npm run build
 
 
       - run: npm publish --access public
