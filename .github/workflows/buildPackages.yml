@@ -1,0 +1,52 @@
+# This pipeline is used as template to build the sfpowerscripts plugin
+
+
+name: 'Build Packages'
+
+on:
+  workflow_call:
+    inputs:
+      version:
+        type: string
+        default: ''
+      publish:
+        type: boolean
+        default: false
+      environment:
+        type: string
+        required: true
+    secrets:
+      npm-token:
+        required: false
+
+jobs:
+  build:
+    name: 'build packages'
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+    steps:
+
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v2
+        with:
+          node-version: '16'
+          registry-url: https://registry.npmjs.org/
+
+      - name: 'Set Git Config'
+        run: |
+          git config --global user.email "ciuser@dxatscale.io"
+          git config --global user.name "ciuser"
+
+
+
+      - name: 'Build Package'
+        run: |
+            npm ci
+
+
+      - run: npm publish --access public
+        env:
+          NODE_AUTH_TOKEN: ${{secrets.NPM_TOKEN}}

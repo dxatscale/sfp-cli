@@ -1,19 +1,10 @@
 {
-  "compilerOptions": {
-    "declaration": true,
-    "importHelpers": true,
-    "module": "commonjs",
-    "outDir": "lib",
-    "rootDir": "src",
-    "resolveJsonModule": true,
-    "strict": false,
-    "strictNullChecks": false,
-    "strictPropertyInitialization": false,
-    "noImplicitAny": false,
-    "skipLibCheck": true,
-    "target": "es2017",
-  },
-  "include": [
-    "src/**/*"
-  ]
+    "extends": "../../tsconfig.json",
+    "compilerOptions": {
+        "outDir": "./lib",
+        "rootDir": "./src",
+        "skipLibCheck": true
+    },
+    "include": ["src/**/*", "src/**/*.json"],
+    "exclude": ["node_modules", "dist", "tests"]
 }

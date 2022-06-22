@@ -1,0 +1,102 @@
+# This pipeline builds the  sfp cli plugin
+# Needs following secrets
+# NPM_TOKEN :  Token to npm.js for dx@scale scope
+#
+
+
+
+name: 'Release'
+
+on:
+   push:
+    branches:
+      - develop
+      - main
+    paths-ignore:
+      - 'docs/**'
+      - '**.md'
+      - 'decision records/**'
+      - 'demoreel/**'
+      - 'prerequisites/**'
+
+   workflow_dispatch:
+
+
+
+# Merge to Develop, create builds
+jobs:
+  build:
+    name: 'build packages'
+    uses: ./.github/workflows/buildPackages.yml
+    with:
+      version: ${{ github.ref }}
+      publish: true
+      environment: build
+    secrets:
+      npm-token: ${{ secrets.NPM_TOKEN }}
+    concurrency:
+      group: build
+
+
+
+# Integration Test Stage
+  test:
+    name: 'smoke test'
+    environment: test
+    runs-on: ubuntu-latest
+    needs: [build-docker]
+    steps:
+      - name: test builds
+        run:  |
+          echo "🍏 This job is just a placeholder"
+
+
+ #Promotion Stages
+ #sfp-cli
+  sfp-hotfix:
+    name: 'sfp-cli hotfix'
+    uses: ./.github/workflows/promotePackage.yml
+    with:
+      version: 'hotfix'
+      pathToPackageJson: 'package.json'
+      environment: sfp-hotfix
+    secrets:
+      npm-token: ${{ secrets.NPM_TOKEN }}
+    if: ${{ github.ref == 'refs/heads/main' }}
+    needs: test
+
+  sfp-alpha:
+    name: 'sfp-cli alpha'
+    uses: ./.github/workflows/promotePackage.yml
+    with:
+      version: 'alpha'
+      pathToPackageJson: 'package.json'
+      environment: sfp-alpha
+    secrets:
+      npm-token: ${{ secrets.NPM_TOKEN }}
+    if: ${{ github.ref == 'refs/heads/develop' }}
+    needs: test
+
+  sfp-beta:
+    name: 'sfp-cli beta'
+    uses: ./.github/workflows/promotePackage.yml
+    with:
+      version: 'beta'
+      pathToPackageJson: 'package.json'
+      environment: sfp-beta
+    secrets:
+      npm-token: ${{ secrets.NPM_TOKEN }}
+    if: ${{ github.ref == 'refs/heads/develop' }}
+    needs: sfp-alpha
+
+  sfp-prod:
+    name: 'sfp-cli prod'
+    uses: ./.github/workflows/promotePackage.yml
+    with:
+      version: 'latest'
+      pathToPackageJson: 'package.json'
+      environment: sfp-prod
+    secrets:
+      npm-token: ${{ secrets.NPM_TOKEN }}
+    if: ${{ always() && (github.ref == 'refs/heads/main' && needs.sfp-hotfix.result == 'success' || github.ref == 'refs/heads/develop' && needs.sfp-beta.result == 'success')  }}
+    needs: [sfp-beta, sfp-hotfix]
