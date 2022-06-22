@@ -44,7 +44,7 @@ jobs:
     name: 'smoke test'
     environment: test
     runs-on: ubuntu-latest
-    needs: [build-docker]
+    needs: [build]
     steps:
       - name: test builds
         run:  |
