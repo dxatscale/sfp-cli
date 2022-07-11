@@ -47,7 +47,6 @@ jobs:
             npm ci
             npm run build
 
-      - name: 'Publish to NPM'
       - run: npm publish --access public --tag ${{ inputs.version }}
         env:
           NODE_AUTH_TOKEN: ${{secrets.npm-token}}
